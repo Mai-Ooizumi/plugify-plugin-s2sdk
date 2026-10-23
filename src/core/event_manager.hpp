@@ -1,17 +1,6 @@
 #pragma once
 
-#include "listener_manager.hpp"
-#include <igameevents.h>
-
-using EventListenerCallback = ResultType (*)(const plg::string& name, IGameEvent* event, bool dontBroadcast);
-inline char EventListenerStr[] = S2SDK_PACKAGE "::EventListener";
-
-struct EventHook {
-	plg::string name;
-	bool postCopy{};
-	uint32_t refCount{1};
-	plg::enum_array<ListenerManager<EventListenerStr, EventListenerCallback>, HookMode> callbacks;
-};
+#include "event_hook.hpp"
 
 enum class EventHookError {
 	Okay = 0,
@@ -33,6 +22,7 @@ public:
 
 	EventHookError HookEvent(std::string_view name, EventListenerCallback callback, HookMode mode = HookMode::Post);
 	EventHookError UnhookEvent(std::string_view name, EventListenerCallback callback, HookMode mode = HookMode::Post);
+	void Shutdown();
 
 	static IGameEvent* CreateEvent(std::string_view name, bool force = false);
 	static void FireEvent(IGameEvent* event, bool dontBroadcast);

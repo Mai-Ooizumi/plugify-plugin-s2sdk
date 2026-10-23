@@ -5,18 +5,16 @@
 
 ConVarManager ConVarManager::instance;
 
-ConVarManager::~ConVarManager() {
-	if (!g_pCVar) {
-		return;
-	}
-
+void ConVarManager::Shutdown() {
+	std::scoped_lock lock(m_mutex);
 	for (const auto& [_, cv] : m_cnvLookup) {
-		if (cv->conVar->IsValidRef()) {
+		if (g_pCVar && cv->conVar->IsValidRef()) {
 			g_pCVar->UnregisterConVarCallbacks(*cv->conVar);
+			cv->conVar->InvalidateRef();
 		}
 	}
-
-	//ConVar_Unregister();
+	m_cnvLookup.clear();
+	m_globalCallbacks.Clear();
 }
 
 void ConVarManager::Init() {

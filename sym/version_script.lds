@@ -178,6 +178,7 @@
 
         AddAdminCommand;
         AddConsoleCommand;
+        HasConsoleCommandCallbacks;
         RemoveCommand;
         AddCommandListener;
         RemoveCommandListener;

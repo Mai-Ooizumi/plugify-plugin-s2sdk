@@ -302,8 +302,10 @@ CAddress CModule::GetVirtualTableByName(std::string_view name, bool is_raw_name)
 #endif
     });
 
-    if (it == m_vtables.end()) [[unlikely]]
+    if (it == m_vtables.end()) [[unlikely]] {
         plg::print(LS_ERROR, "Failed to find vtable \"{}\"", name);
+        return {};
+    }
 
     CAddress address = it->get()->vtable_address;
 	{

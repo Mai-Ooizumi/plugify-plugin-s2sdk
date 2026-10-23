@@ -40,6 +40,11 @@ extern "C" PLUGIN_API bool AddConsoleCommand(const plg::string& name, const plg:
 	return result;
 }
 
+extern "C" PLUGIN_API bool HasConsoleCommandCallbacks(const plg::string& name) {
+	auto command = g_pCVar->FindConCommand(name.c_str());
+	return command.IsValidRef() && command.HasCallback();
+}
+
 /**
  * @brief Removes a console command from the system.
  *

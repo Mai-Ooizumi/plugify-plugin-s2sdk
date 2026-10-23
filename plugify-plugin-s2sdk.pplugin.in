@@ -10760,6 +10760,24 @@
       }
     },
     {
+      "name": "HasConsoleCommandCallbacks",
+      "group": "Commands",
+      "description": "Local compatibility bridge: checks live callbacks, not retained command names.",
+      "funcName": "HasConsoleCommandCallbacks",
+      "paramTypes": [
+        {
+          "name": "name",
+          "type": "string",
+          "ref": false,
+          "description": "Command name."
+        }
+      ],
+      "retType": {
+        "type": "bool",
+        "description": "Whether the engine command has callbacks registered."
+      }
+    },
+    {
       "name": "RemoveCommand",
       "group": "Commands",
       "description": "Removes a console command from the system.",

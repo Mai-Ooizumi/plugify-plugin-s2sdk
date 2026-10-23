@@ -2,6 +2,7 @@
 
 #    include "os.h"
 #    include "module.hpp"
+#    include "module_lookup.hpp"
 
 #    include <Zydis/Zydis.h>
 
@@ -23,10 +24,11 @@
 #        undef _ThrowInfo
 #    endif
 #    include <vcruntime.h>
+#    include <dbghelp.h>
 
 void CModule::GetModuleInfo(std::string_view module_name)
 {
-    HMODULE handle = GetModuleHandleA(module_name.data());
+    HMODULE handle = static_cast<HMODULE>(ModuleLookup::FindModule(module_name));
     if (!handle)
         return;
 
@@ -337,7 +339,17 @@ void CModule::DumpVtables()
                 auto vtable_start = ptr + sizeof(void*);
                 auto ti = (m_base_address + col->pTypeDescriptor).As<std::type_info*>();
 
-                auto node = std::make_unique<VTable>(ti, vtable_start, ti->name(), col->offset, col);
+                // type_info::name() caches plugin-owned memory in engine RTTI across DLL unload.
+                const char* raw_name = ti->raw_name();
+                std::string demangled_name(std::strlen(raw_name) * 4 + 256, '\0');
+                const auto length = UnDecorateSymbolName(raw_name + 1, demangled_name.data(),
+                    static_cast<DWORD>(demangled_name.size()), UNDNAME_NO_ARGUMENTS);
+                if (length == 0) {
+                    plg::print(LS_ERROR, "Failed to undecorate engine RTTI {}\n", raw_name);
+                    continue;
+                }
+                demangled_name.resize(length);
+                auto node = std::make_unique<VTable>(ti, vtable_start, demangled_name, col->offset, col);
 
                 if (col->offset == 0) vtable_map[ti] = node.get();
 

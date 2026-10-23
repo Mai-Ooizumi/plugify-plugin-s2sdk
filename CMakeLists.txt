@@ -243,6 +243,31 @@ target_compile_options(${PROJECT_NAME} PRIVATE ${S2SDK_COMPILE_OPTIONS})
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/external/plugify/include")
 
+option(S2SDK_BUILD_EVENT_MANAGER_SELFCHECK "Build the event-hook lifecycle self-check" OFF)
+if(S2SDK_BUILD_EVENT_MANAGER_SELFCHECK)
+    enable_testing()
+    add_executable(s2sdk-event-manager-lifecycle-selfcheck EXCLUDE_FROM_ALL
+            tests/event_manager_lifecycle_selfcheck.cpp)
+    target_include_directories(s2sdk-event-manager-lifecycle-selfcheck PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src"
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/plugify/include"
+            "${CMAKE_CURRENT_BINARY_DIR}/exports"
+            $<TARGET_PROPERTY:sourcesdk,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions(s2sdk-event-manager-lifecycle-selfcheck PRIVATE ${S2SDK_COMPILE_DEFINITIONS}
+            $<TARGET_PROPERTY:sourcesdk,INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_options(s2sdk-event-manager-lifecycle-selfcheck PRIVATE ${S2SDK_COMPILE_OPTIONS}
+            $<TARGET_PROPERTY:sourcesdk,INTERFACE_COMPILE_OPTIONS>)
+    if(MSVC)
+        target_compile_options(s2sdk-event-manager-lifecycle-selfcheck PRIVATE /W4 /WX /Zc:preprocessor)
+        set_target_properties(s2sdk-event-manager-lifecycle-selfcheck PROPERTIES
+                MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        target_compile_options(s2sdk-event-manager-lifecycle-selfcheck PRIVATE -Wextra -Wshadow -Wconversion)
+    endif()
+    add_test(NAME s2sdk-event-manager-lifecycle-selfcheck
+            COMMAND s2sdk-event-manager-lifecycle-selfcheck)
+endif()
+
 if(NOT COMPILER_SUPPORTS_FORMAT)
     #target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
 endif()

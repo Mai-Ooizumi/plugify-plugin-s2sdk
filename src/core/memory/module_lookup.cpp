@@ -1,9 +1,17 @@
 #include "module_lookup.hpp"
 #include "os.h"
+#if PLATFORM_WINDOWS
+#include <filesystem>
+#include <tier0/platform.h>
+#endif
 
 ModuleHandle ModuleLookup::FindModule(std::string_view name) {
 #if PLATFORM_WINDOWS
-	HMODULE h = GetModuleHandleA(name.data());
+	if (name == "server.dll") {
+		const auto path = std::filesystem::absolute(std::filesystem::path(Plat_GetGameDirectory()) / S2SDK_GAME_NAME / "bin" / "win64" / "server.dll");
+		return static_cast<ModuleHandle>(GetModuleHandleW(path.c_str()));
+	}
+	HMODULE h = GetModuleHandleA(std::string(name).c_str());
 	return static_cast<ModuleHandle>(h);
 #else
 	void* h = dlopen(name.data(), RTLD_NOLOAD | RTLD_NOW);

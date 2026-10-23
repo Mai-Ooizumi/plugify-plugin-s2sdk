@@ -2,9 +2,23 @@
 
 EventManager EventManager::instance;
 
-EventManager::~EventManager() {
-	if (!m_hookMap.empty()) {
+EventManager::~EventManager() = default;
+
+void EventManager::Shutdown() {
+	std::scoped_lock lock(m_mutex);
+	// Engine registration outlives individual callbacks, including an empty hook map.
+	if (g_pGameEventManager) {
 		g_pGameEventManager->RemoveListener(this);
+	}
+	m_hookMap.clear();
+	while (!m_eventCopies.empty()) {
+		if (g_pGameEventManager) {
+			g_pGameEventManager->FreeEvent(m_eventCopies.top());
+		}
+		m_eventCopies.pop();
+	}
+	while (!m_eventStack.empty()) {
+		m_eventStack.pop();
 	}
 }
 
@@ -50,11 +64,11 @@ EventHookError EventManager::UnhookEvent(std::string_view name, EventListenerCal
 	auto it = m_hookMap.find(name);
 	if (it != m_hookMap.end()) {
 		auto hook = it->second;
-		auto status = hook->callbacks[mode].Unregister(callback) ? EventHookError::Okay : EventHookError::InvalidCallback;
-		if ((hook->callbacks[HookMode::Pre].Empty() && hook->callbacks[HookMode::Post].Empty()) || --hook->refCount == 0) {
+		auto status = hook->RemoveCallback(callback, mode);
+		if (status == EventHookUnregisterResult::Empty) {
 			m_hookMap.erase(it);
 		}
-		return status;
+		return status == EventHookUnregisterResult::NotRegistered ? EventHookError::InvalidCallback : EventHookError::Okay;
 	}
 
 	return EventHookError::NotActive;
@@ -152,7 +166,7 @@ ResultType EventManager::OnFireEvent_Post(IGameEvent* event, bool dontBroadcast)
 			}
 		}
 
-		if (--hook->refCount == 0) {
+		if (hook->FinishDispatch()) {
 			m_hookMap.erase(hook->name);
 		}
 	}

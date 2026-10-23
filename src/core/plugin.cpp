@@ -374,10 +374,10 @@ polyhook::ResultType Hook_ClientCommand(polyhook::HookHandle hook, polyhook::Par
 	return polyhook::ResultType::Ignored;
 }
 
-polyhook::ResultType Hook_GameServerSteamAPIActivated(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
+void InitializeSteamAPI() {
 	// This is only intended for dedicated servers
 	if (!g_pEngineServer->IsDedicatedServer())
-		return polyhook::ResultType::Ignored;
+		return;
 
 	plg::print(LS_DETAILED, "[GameServerSteamAPIActivated]\n");
 
@@ -385,8 +385,10 @@ polyhook::ResultType Hook_GameServerSteamAPIActivated(polyhook::HookHandle hook,
 	g_pSteamUGC = SteamGameServerUGC();
 
 	if (!g_pSteam || !g_pSteamUGC) {
+		g_pSteam = nullptr;
+		g_pSteamUGC = nullptr;
 		plg::print(LS_WARNING, "StramAPI could not be initialized!\n");
-		return polyhook::ResultType::Ignored;
+		return;
 	}
 
 	g_PlayerManager.OnSteamAPIActivated();
@@ -395,6 +397,10 @@ polyhook::ResultType Hook_GameServerSteamAPIActivated(polyhook::HookHandle hook,
 #endif
 
 	//g_GameServerSteamAPIActivatedListenerManager();
+}
+
+polyhook::ResultType Hook_GameServerSteamAPIActivated(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
+	InitializeSteamAPI();
 	return polyhook::ResultType::Ignored;
 }
 
@@ -407,6 +413,8 @@ polyhook::ResultType Hook_GameServerSteamAPIDeactivated(polyhook::HookHandle hoo
 #endif
 
 	//g_GameServerSteamAPIDeactivatedListenerManager();
+	g_pSteam = nullptr;
+	g_pSteamUGC = nullptr;
 	return polyhook::ResultType::Ignored;
 }
 
@@ -430,14 +438,15 @@ polyhook::ResultType Hook_PreWorldUpdate(polyhook::HookHandle hook, polyhook::Pa
 }
 
 polyhook::ResultType Hook_FireOutputInternal(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
-	// CEntityIOOutput* const self, CEntityInstance* activator, CEntityInstance* caller, const CPulseArgumentPack* args, const CPulseInputParamMap* paramMap, const CVariant* value, float delay
+	// Windows CS2 build 25815307 passes delay before paramMap and value.
 	auto self = polyhook::GetArgument<CEntityIOOutput* const>(params, 0);
 	auto activator = polyhook::GetArgument<CEntityInstance*>(params, 1);
 	auto caller = polyhook::GetArgument<CEntityInstance*>(params, 2);
-	//auto args = polyhook::GetArgument<const CPulseArgumentPack*>(params, 3);
-	//auto paramMap = polyhook::GetArgument<const CPulseInputParamMap*>(params, 4);
-	//auto value = polyhook::GetArgument<const CVariant* const>(params, 5);
+#if defined(CS2) && defined(_WIN32)
+	auto delay = polyhook::GetArgument<float>(params, 4);
+#else
 	auto delay = polyhook::GetArgument<float>(params, 6);
+#endif
 
 	ResultType result = type == polyhook::CallbackType::Post ?
 		g_EntityOutputManager.FireOutputInternal_Post(self, activator, caller, delay) :
@@ -524,13 +533,24 @@ polyhook::ResultType Hook_HostStateRequest(polyhook::HookHandle hook, polyhook::
 
 polyhook::ResultType Hook_CreateFakeClient(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
 	// const char* netname -> CPlayerSlot
+#if PLATFORM_WINDOWS
+	// MSVC places CPlayerSlot return storage between this and netname.
+	auto name = polyhook::GetArgument<const char*>(params, 2);
+#else
 	auto name = polyhook::GetArgument<const char*>(params, 1);
+#endif
 
 	plg::print(LS_DETAILED, "[CreateFakeClient] = {}\n", name);
 
 	ENetworkDisconnectionReason reason = g_PlayerManager.OnClientConnect(name, g_pNetworkSystem->GetLocalAdr().ToString(true), 0);
 	if (reason != NETWORK_DISCONNECT_INVALID) {
+#if PLATFORM_WINDOWS
+		auto slot = polyhook::GetArgument<CPlayerSlot*>(params, 1);
+		*slot = INVALID_PLAYER_SLOT;
+		polyhook::SetReturn<CPlayerSlot*>(ret, slot);
+#else
 		polyhook::SetReturn<int>(ret, INVALID_PLAYER_SLOT_INDEX);
+#endif
 		return polyhook::ResultType::Supercede;
 	}
 
@@ -782,7 +802,13 @@ Result<void> SetupHooks() {
 	CHECK(g_HookManager.AddHookVTableFunc<PostEventAbstract>(STR(IGameEventSystem::PostEventAbstract), &IGameEventSystem::PostEventAbstract, g_pGameEventSystem, Hook_PostEvent, {Pre, Post}));
 	CHECK(g_HookManager.AddHookVTableFunc(STR(INetworkMessages::SerializeAbstract), &INetworkMessages::SerializeAbstract, g_pNetworkMessages, Hook_Serialize, {Pre}));
 
+#if PLATFORM_WINDOWS
+	// Describe the physical ABI only; never call through this cast member pointer.
+	using CreateFakeClientAbi = CPlayerSlot*(IVEngineServer2::*)(CPlayerSlot*, const char*);
+	CHECK(g_HookManager.AddHookVTableFunc(STR(IVEngineServer2::CreateFakeClient), reinterpret_cast<CreateFakeClientAbi>(&IVEngineServer2::CreateFakeClient), g_pEngineServer, Hook_CreateFakeClient, {Pre}));
+#else
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IVEngineServer2::CreateFakeClient), &IVEngineServer2::CreateFakeClient, g_pEngineServer, Hook_CreateFakeClient, {Pre}));
+#endif
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::OnClientConnected), &IServerGameClients::OnClientConnected, g_pSource2GameClients, Hook_OnClientConnected, {Post}));
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::ClientCommand), &IServerGameClients::ClientCommand, g_pSource2GameClients, Hook_ClientCommand, {Pre}));
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::ClientActive), &IServerGameClients::ClientActive, g_pSource2GameClients, Hook_ClientActive, {Post}));
@@ -827,7 +853,11 @@ Result<void> SetupHooks() {
 	CHECK(g_HookManager.AddHookDetourFunc<HostStateRequestFn>("CHostStateMgr::StartNewRequest", Hook_HostStateRequest, {Pre}));
 	using ReplyConnectionFn = void (*)(CNetworkGameServerBase *server, CServerSideClient* client);
 	CHECK(g_HookManager.AddHookDetourFunc<ReplyConnectionFn>("CNetworkGameServer::ReplyConnection", Hook_ReplyConnection, {Pre, Post}));
+#if defined(_WIN32)
+	using FireOutputInternalFn = void(*)(CEntityIOOutput*, CEntityInstance*, CEntityInstance*, const CPulseArgumentPack*, float, const CPulseInputParamMap*, const CVariant*);
+#else
 	using FireOutputInternalFn = void(*)(CEntityIOOutput*, CEntityInstance*, CEntityInstance*, const CPulseArgumentPack*, const CPulseInputParamMap*, const CVariant*, float);
+#endif
 	CHECK(g_HookManager.AddHookDetourFunc<FireOutputInternalFn>("CEntityIOOutput::FireOutputInternal", Hook_FireOutputInternal, {Pre, Post}));
 
 	static Memory CServerSideClient;
@@ -901,6 +931,9 @@ Result<void> ServerStartup() {
 #endif
 
 	RegisterEventListeners();
+	if (gpGlobals) {
+		InitializeSteamAPI();
+	}
 
 	return {};
 }
@@ -937,6 +970,10 @@ plg::PluginResult Source2SDK::OnPluginStart() {
 }
 
 plg::PluginResult Source2SDK::OnPluginEnd() {
+	g_EventManager.Shutdown();
+	g_ConCommandManager.Shutdown();
+	g_ConVarManager.Shutdown();
+	ConVar_Unregister();
 	globals::Terminate();
 	g_HookManager.UnhookAll();
 	g_PlayerManager.OnSteamAPIDeactivated();

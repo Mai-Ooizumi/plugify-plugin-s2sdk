@@ -501,7 +501,7 @@ using ConfigId = uint32_t;
 
 class GameConfigManager {
 	GameConfigManager() = default;
-	~GameConfigManager() = default;
+	~GameConfigManager() { m_configs.clear(); }
 	NONCOPYABLE(GameConfigManager)
 
 	static GameConfigManager instance;

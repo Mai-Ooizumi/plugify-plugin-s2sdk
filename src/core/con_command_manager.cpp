@@ -26,6 +26,14 @@ ConCommandInfo::~ConCommandInfo() {
 
 ConCommandManager ConCommandManager::instance;
 
+void ConCommandManager::Shutdown() {
+	std::scoped_lock lock(m_mutex);
+	m_cmdLookup.clear();
+	for (auto& callbacks : m_globalCallbacks) {
+		callbacks.Clear();
+	}
+}
+
 bool ConCommandManager::AddCommandListener(std::string_view name, ConCommandListenerCallback callback, HookMode mode) {
 	std::scoped_lock lock(m_mutex);
 
@@ -82,7 +90,8 @@ bool ConCommandManager::AddValveCommand(std::string_view name, std::string_view 
 	}
 
 	auto it = m_cmdLookup.find(name);
-	if (it != m_cmdLookup.end() || g_pCVar->FindConVar(name.data()).IsValidRef() || g_pCVar->FindConCommand(name.data()).IsValidRef()) {
+	auto existingCommand = g_pCVar->FindConCommand(name.data());
+	if (it != m_cmdLookup.end() || g_pCVar->FindConVar(name.data()).IsValidRef() || (existingCommand.IsValidRef() && existingCommand.HasCallback())) {
 		plg::print(LS_WARNING, "Command '{}' is already exists\n", name);
 		return false;
 	}
@@ -112,16 +121,13 @@ bool ConCommandManager::RemoveValveCommand(std::string_view name) {
 		return false;
 	}
 
-	auto commandRef = g_pCVar->FindConCommand(name.data());
-	if (!commandRef.IsValidRef()) {
+	auto it = m_cmdLookup.find(name);
+	if (it == m_cmdLookup.end() || it->second->defaultCommand) {
 		return false;
 	}
 
-	if (m_cmdLookup.erase(name) != 0) {
-		return true;
-	}
-
-	g_pCVar->UnregisterConCommandCallbacks(commandRef);
+	// Only the owned registration ref carries the index required for unregistering.
+	m_cmdLookup.erase(it);
 	return true;
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vscript/ivscript.h>
+#include <bit>
 
 struct VScriptBinding {
 	void* funcaddr;
@@ -40,10 +41,11 @@ public:
 		static VScriptBinding binding = vscript::GetBinding(ThisClass::m_className, FunctionName);
 		void* instance = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(this) - MemberOffset());
 #if defined(_MSC_VER)
-		// MSVC: Direct member function pointer call
-		using MemberFunc = Ret(__thiscall*)(void*, Args...);
-		auto func = reinterpret_cast<MemberFunc>(binding.funcaddr);
-		return func(instance, std::forward<Args>(args)...);
+		// MSVC member calls place hidden aggregate return storage after this.
+		using MemberFunc = Ret(ThisClass::*)(Args...);
+		static_assert(sizeof(MemberFunc) == sizeof(binding.funcaddr));
+		auto func = std::bit_cast<MemberFunc>(binding.funcaddr);
+		return (static_cast<ThisClass*>(instance)->*func)(std::forward<Args>(args)...);
 #elif defined(__GNUC__) || defined(__clang__)
 		// GCC: Handle member function pointer structure
 		using MemberFunc = Ret(*)(void*, Args...);

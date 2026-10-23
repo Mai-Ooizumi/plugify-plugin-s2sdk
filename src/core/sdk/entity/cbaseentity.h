@@ -193,7 +193,7 @@ public:
     VSCRIPT_MEMBER_FUNCTION(EmitSound, void, string)
     VSCRIPT_MEMBER_FUNCTION(EmitSoundParams, void, string, int, float, float)
     VSCRIPT_MEMBER_FUNCTION(EyeAngles, QAngle)
-    VSCRIPT_MEMBER_FUNCTION(EyePosition, Vector)
+    VSCRIPT_MEMBER_FUNCTION(EyePosition, const Vector&)
     VSCRIPT_MEMBER_FUNCTION(FirstMoveChild, handle)
     VSCRIPT_MEMBER_FUNCTION(FollowEntity, void, handle, bool)
     VSCRIPT_MEMBER_FUNCTION(FollowEntityMerge, void, handle, string)

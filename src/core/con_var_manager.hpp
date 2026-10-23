@@ -62,7 +62,7 @@ using ConVarHandle = uint64_t;
 
 class ConVarManager {
 	ConVarManager() = default;
-	~ConVarManager();
+	~ConVarManager() = default;
 	NONCOPYABLE(ConVarManager)
 
 	static ConVarManager instance;
@@ -70,6 +70,7 @@ public:
 	static auto& Instance() noexcept {
 		return instance;
 	}
+	void Shutdown();
 	static void Init();
 
 	static uint64 GetFlags(ConVarFlag flags) {
