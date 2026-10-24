@@ -1684,7 +1684,7 @@ extern "C" PLUGIN_API void ForceRespawnClient(int playerSlot) {
 
 	CBasePlayerPawn* currentPawn = controller->GetCurrentPawn();
 	CCSPlayerPawn* playerPawn = controller->GetPlayerPawn();
-	if (currentPawn && currentPawn->IsPlayerPawn()) {
+	if (CCSPlayerController::IsPlayerPawnEntity(currentPawn)) {
 		auto* currentPlayerPawn = static_cast<CCSPlayerPawn*>(currentPawn);
 		if (currentPlayerPawn->GetController() != controller || (playerPawn && playerPawn != currentPlayerPawn)) return;
 		controller->ForceRespawn(currentPlayerPawn);

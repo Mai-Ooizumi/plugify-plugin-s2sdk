@@ -23,6 +23,7 @@
 #include "ccsplayerpawn.h"
 #include "ccsteam.h"
 #include <sharedInterface.h>
+#include <string_view>
 
 class CCSPlayerController : public CBasePlayerController {
 public:
@@ -64,6 +65,12 @@ public:
 		return m_fFlags & FL_FAKECLIENT;
 	}
 
+	static bool IsPlayerPawnEntity(CBasePlayerPawn* pawn) {
+		// The VScript IsPlayerPawn predicate also accepts CS2 observer pawns.
+		const char* classname = pawn ? pawn->GetClassname() : nullptr;
+		return classname && std::string_view(classname) == "player";
+	}
+
 	void ChangeTeam(CSTeam team) {
 		static auto offset = GetOrLog(g_pGameConfig->GetOffset("CCSPlayerController::ChangeTeam"));
 		CALL_VIRTUAL(void, offset, this, team);
@@ -96,7 +103,7 @@ public:
 			return;
 
 		CBasePlayerPawn* currentPawn = GetCurrentPawn();
-		if (currentPawn != pawn && ((currentPawn && currentPawn->IsPlayerPawn()) || pawn->IsAlive()))
+		if (currentPawn != pawn && (IsPlayerPawnEntity(currentPawn) || pawn->IsAlive()))
 			return;
 
 		SetPawn(pawn);
