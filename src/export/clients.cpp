@@ -1673,6 +1673,31 @@ extern "C" PLUGIN_API void RespawnClient(int playerSlot) {
 }
 
 /**
+ * @brief Forces a full engine respawn for a player, including when the current pawn is alive.
+ *
+ * @param playerSlot The index of the player's slot to respawn.
+ */
+extern "C" PLUGIN_API void ForceRespawnClient(int playerSlot) {
+#if defined(CS2)
+	auto* controller = helpers::GetController(playerSlot);
+	if (!controller) return;
+
+	CBasePlayerPawn* currentPawn = controller->GetCurrentPawn();
+	CCSPlayerPawn* playerPawn = controller->GetPlayerPawn();
+	if (currentPawn && currentPawn->IsPlayerPawn()) {
+		auto* currentPlayerPawn = static_cast<CCSPlayerPawn*>(currentPawn);
+		if (currentPlayerPawn->GetController() != controller || (playerPawn && playerPawn != currentPlayerPawn)) return;
+		controller->ForceRespawn(currentPlayerPawn);
+	} else if (playerPawn && playerPawn->GetController() == controller && !playerPawn->IsAlive()) {
+		controller->ForceRespawn(playerPawn);
+	}
+#else
+	(void)playerSlot;
+	plg::print(LS_WARNING, "Cannot execute 'ForceRespawnClient': this entry is only supported in CS2.\n");
+#endif
+}
+
+/**
  * @brief Forces a player to commit suicide.
  *
  * @param playerSlot The index of the player's slot.

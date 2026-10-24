@@ -10051,6 +10051,23 @@
       }
     },
     {
+      "name": "ForceRespawnClient",
+      "group": "Clients",
+      "description": "Forces a full engine respawn for a player, including when the current pawn is alive. Supported in CS2.",
+      "funcName": "ForceRespawnClient",
+      "paramTypes": [
+        {
+          "name": "playerSlot",
+          "type": "int32",
+          "ref": false,
+          "description": "The index of the player's slot to respawn."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "ForcePlayerSuicide",
       "group": "Clients",
       "description": "Forces a player to commit suicide.",

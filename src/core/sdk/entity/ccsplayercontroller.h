@@ -90,4 +90,17 @@ public:
 		static auto offset = GetOrLog(g_pGameConfig->GetOffset("CBasePlayerController::RoundRespawn"));
 		CALL_VIRTUAL(void, offset, this);
 	}
+
+	void ForceRespawn(CCSPlayerPawn* pawn) {
+		if (!pawn || pawn->GetController() != this)
+			return;
+
+		CBasePlayerPawn* currentPawn = GetCurrentPawn();
+		if (currentPawn != pawn && ((currentPawn && currentPawn->IsPlayerPawn()) || pawn->IsAlive()))
+			return;
+
+		SetPawn(pawn);
+		static auto offset = GetOrLog(g_pGameConfig->GetOffset("CBasePlayerController::RoundRespawn"));
+		CALL_VIRTUAL(void, offset, this);
+	}
 };

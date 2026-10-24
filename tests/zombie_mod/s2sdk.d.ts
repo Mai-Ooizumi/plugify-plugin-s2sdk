@@ -3926,6 +3926,7 @@ declare module ":s2sdk" {
    * @param {int32} playerSlot - The index of the player's slot to respawn.
    */
   export function RespawnClient(playerSlot: number): void;
+  export function ForceRespawnClient(playerSlot: number): void;
   /**
    * Forces a player to commit suicide.
    *

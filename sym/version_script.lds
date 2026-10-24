@@ -148,6 +148,7 @@
         SwitchClientTeam;
         ChangeClientTeam;
         RespawnClient;
+        ForceRespawnClient;
         ForcePlayerSuicide;
         KickClient;
         BanClient;
