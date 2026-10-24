@@ -99,10 +99,22 @@ public:
 	}
 
 	void ForceRespawn(CCSPlayerPawn* pawn) {
-		if (!pawn || pawn->GetController() != this)
+		if (!pawn)
 			return;
 
 		CBasePlayerPawn* currentPawn = GetCurrentPawn();
+		CBasePlayerController* pawnController = pawn->GetController();
+		if (pawnController && pawnController != this)
+			return;
+
+		const bool isOriginalDeadPawn = pawn == GetPlayerPawn() && !pawn->IsAlive() && pawn->GetOriginalController() == this;
+		CCSPlayerPawnBase* observerPawn = GetObserverPawn();
+		const bool observerIsCurrent = currentPawn && currentPawn == observerPawn && currentPawn->GetController() == this &&
+			m_hOriginalControllerOfCurrentPawn.Get().Get() == this;
+		const bool canRestoreOriginalPawn = !pawnController && isOriginalDeadPawn && observerIsCurrent;
+		if (!pawnController && !canRestoreOriginalPawn)
+			return;
+
 		if (currentPawn != pawn && (IsPlayerPawnEntity(currentPawn) || pawn->IsAlive()))
 			return;
 
