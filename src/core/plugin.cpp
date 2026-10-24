@@ -952,6 +952,10 @@ plg::PluginResult Source2SDK::OnPluginStart() {
 		}
 	}
 
+#if defined (CS2)
+	g_MultiAddonManager.OnPluginStart();
+#endif
+
 	{
 		auto result = SetupHooks();
 		if (!result) {
