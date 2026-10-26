@@ -374,13 +374,7 @@ polyhook::ResultType Hook_ClientCommand(polyhook::HookHandle hook, polyhook::Par
 	return polyhook::ResultType::Ignored;
 }
 
-void InitializeSteamAPI() {
-	// This is only intended for dedicated servers
-	if (!g_pEngineServer->IsDedicatedServer())
-		return;
-
-	plg::print(LS_DETAILED, "[GameServerSteamAPIActivated]\n");
-
+void OnSteamAPIActivated(bool reloadMap = true) {
 	g_pSteam = SteamGameServer();
 	g_pSteamUGC = SteamGameServerUGC();
 
@@ -393,14 +387,17 @@ void InitializeSteamAPI() {
 
 	g_PlayerManager.OnSteamAPIActivated();
 #if defined (CS2)
-	g_MultiAddonManager.OnSteamAPIActivated();
+	g_MultiAddonManager.OnSteamAPIActivated(reloadMap);
 #endif
-
-	//g_GameServerSteamAPIActivatedListenerManager();
 }
 
 polyhook::ResultType Hook_GameServerSteamAPIActivated(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
-	InitializeSteamAPI();
+	if (!g_pEngineServer->IsDedicatedServer())
+		return polyhook::ResultType::Ignored;
+
+	plg::print(LS_DETAILED, "[GameServerSteamAPIActivated]\n");
+	OnSteamAPIActivated();
+	//g_GameServerSteamAPIActivatedListenerManager();
 	return polyhook::ResultType::Ignored;
 }
 
@@ -931,9 +928,6 @@ Result<void> ServerStartup() {
 #endif
 
 	RegisterEventListeners();
-	if (gpGlobals) {
-		InitializeSteamAPI();
-	}
 
 	return {};
 }
@@ -970,21 +964,42 @@ plg::PluginResult Source2SDK::OnPluginStart() {
 		}
 	}
 
+	const char* map = gpGlobals ? gpGlobals->mapname.ToCStr() : nullptr;
+	bool lateLoad = map && *map;
+
+#if defined (CS2)
+	if (lateLoad) {
+		g_MultiAddonManager.RestoreCurrentWorkshopMap(map);
+	}
+#endif
+
+	if (g_pEngineServer->IsDedicatedServer() && SteamGameServer()) {
+		OnSteamAPIActivated(false);
+	}
+
+	if (lateLoad) {
+		plg::print(LS_MESSAGE, "Plugin loaded in the middle of a map, reloading map {}\n", map);
+#if defined (CS2)
+		g_MultiAddonManager.ReloadMap();
+#else
+		g_pEngineServer->ServerCommand(std::format("changelevel {}", map).c_str());
+#endif
+	}
+
 	return{};
 }
 
 plg::PluginResult Source2SDK::OnPluginEnd() {
+	g_HookManager.UnhookAll();
 	g_EventManager.Shutdown();
 	g_ConCommandManager.Shutdown();
 	g_ConVarManager.Shutdown();
-	ConVar_Unregister();
-	globals::Terminate();
-	g_HookManager.UnhookAll();
 	g_PlayerManager.OnSteamAPIDeactivated();
 #if defined (CS2)
 	g_MultiAddonManager.OnSteamAPIDeactivated();
 #endif
 	UnregisterEventListeners();
+	globals::Terminate();
 
 	plg::print(LS_DETAILED, "[OnPluginEnd] = Source2SDK!\n");
 

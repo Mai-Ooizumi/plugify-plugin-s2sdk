@@ -21,6 +21,10 @@ void ConVarManager::Init() {
 	ConVar_Register(FCVAR_RELEASE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
 }
 
+void ConVarManager::Terminate() {
+	ConVar_Unregister();
+}
+
 bool ConVarManager::RemoveConVar(std::string_view name) {
 	std::scoped_lock lock(m_mutex);
 

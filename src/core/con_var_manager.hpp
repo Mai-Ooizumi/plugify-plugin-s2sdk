@@ -72,6 +72,7 @@ public:
 	}
 	void Shutdown();
 	static void Init();
+	static void Terminate();
 
 	static uint64 GetFlags(ConVarFlag flags) {
 		auto f = static_cast<uint64>(flags);
