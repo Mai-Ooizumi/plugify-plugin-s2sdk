@@ -554,6 +554,18 @@ polyhook::ResultType Hook_CreateFakeClient(polyhook::HookHandle hook, polyhook::
 	return polyhook::ResultType::Ignored;
 }
 
+#if defined (CS2)
+polyhook::ResultType Hook_ClientConnect(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
+	// Unlike OnClientConnected, this runs after ReplyConnection and client addon mounting.
+	auto slot = polyhook::GetArgument<int>(params, 1);
+	auto name = polyhook::GetArgument<const char*>(params, 2);
+	auto steamID64 = polyhook::GetArgument<uint64_t>(params, 3);
+	auto networkID = polyhook::GetArgument<const char*>(params, 4);
+	g_MultiAddonManager.OnClientConnect(slot, name, steamID64, networkID);
+	return polyhook::ResultType::Ignored;
+}
+#endif
+
 polyhook::ResultType Hook_OnClientConnected(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
 	// CPlayerSlot slot, const char* name, uint64 xuid, const char* networkID, const char* pszAddress, bool bFakePlayer
 	CPlayerSlot slot = polyhook::GetArgument<int>(params, 1);
@@ -565,11 +577,6 @@ polyhook::ResultType Hook_OnClientConnected(polyhook::HookHandle hook, polyhook:
 
 	plg::print(LS_DETAILED, "[OnClientConnected] = {}, {}, {}, {}, {}, {}\n", slot.Get(), name, xuid, networkID, address, fakePlayer);
 
-#if defined (CS2)
-	if (!fakePlayer) {
-		g_MultiAddonManager.OnClientConnect(slot, name, xuid, address);
-	}
-#endif
 	g_PlayerManager.OnClientConnected(slot, xuid);
 
 	if (!fakePlayer) {
@@ -807,6 +814,9 @@ Result<void> SetupHooks() {
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IVEngineServer2::CreateFakeClient), &IVEngineServer2::CreateFakeClient, g_pEngineServer, Hook_CreateFakeClient, {Pre}));
 #endif
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::OnClientConnected), &IServerGameClients::OnClientConnected, g_pSource2GameClients, Hook_OnClientConnected, {Post}));
+#if defined (CS2)
+	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::ClientConnect), &IServerGameClients::ClientConnect, g_pSource2GameClients, Hook_ClientConnect, {Pre}));
+#endif
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::ClientCommand), &IServerGameClients::ClientCommand, g_pSource2GameClients, Hook_ClientCommand, {Pre}));
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::ClientActive), &IServerGameClients::ClientActive, g_pSource2GameClients, Hook_ClientActive, {Post}));
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IServerGameClients::ClientPutInServer), &IServerGameClients::ClientPutInServer, g_pSource2GameClients, Hook_ClientPutInServer, {Post}));

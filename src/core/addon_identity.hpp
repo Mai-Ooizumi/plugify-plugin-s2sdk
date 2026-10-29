@@ -46,6 +46,18 @@ std::vector<std::string> WithMap(std::string_view map, const Range& workshopAddo
 	return result;
 }
 
+// Called only at the game ClientConnect gate, after the client has mounted the
+// addon offered by ReplyConnection. The earlier OnClientConnected notification
+// cannot acknowledge that offer because it has not been sent yet.
+inline bool CompletePending(std::vector<std::string>& downloaded, std::string& pending,
+                            double elapsed, double timeout) {
+	bool completed = !pending.empty() && elapsed <= timeout;
+	if (completed && !std::ranges::contains(downloaded, pending))
+		downloaded.push_back(pending);
+	pending.clear();
+	return completed;
+}
+
 // Offer the first pending addon while retaining already acquired addons.
 // Names must survive this handshake just like numeric Workshop IDs.
 inline void ForConnection(std::vector<std::string>& names,

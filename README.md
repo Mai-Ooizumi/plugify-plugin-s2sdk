@@ -192,7 +192,10 @@ cmake --build build --target s2sdk-multi-addon-identity-selfcheck --config Relea
 ctest --test-dir build -C Release -R s2sdk-multi-addon --output-on-failure
 ```
 
-The self-check covers addon identity, ordering and the connection handshake. Engine
+The self-check covers addon identity, ordering and the connection handshake, including
+pending-addon acknowledgement and expiry. Acknowledgement belongs to the game
+`ClientConnect` gate, after `ReplyConnection`, not the earlier `OnClientConnected`
+notification. Engine
 acceptance additionally requires connecting, reconnecting and changing maps with the
 button pack enabled on `de_debris`, `de_fachwerk` and `de_poseidon`.
 

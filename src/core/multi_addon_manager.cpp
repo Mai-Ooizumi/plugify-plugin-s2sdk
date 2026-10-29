@@ -797,10 +797,10 @@ void MultiAddonManager::OnClientConnect(CPlayerSlot slot, const char* name, uint
 			plg::print(LS_MESSAGE, "{}: Client {} has reconnected after the timeout or did not receive the addon message, will not add addon {} to the downloaded list\n", __func__, steamID64, clientInfo.currentPendingAddon);
 		} else {
 			plg::print(LS_MESSAGE, "{}: Client {} has connected within the interval with the pending addon {}, will send next addon in SendNetMessage hook\n", __func__, steamID64, clientInfo.currentPendingAddon);
-			clientInfo.downloadedAddons.push_back(clientInfo.currentPendingAddon);
 		}
-		// Reset the current pending addon anyway, SendNetMessage tells us which addon to download next.
-		clientInfo.currentPendingAddon.clear();
+		// ClientConnect is the acknowledgement that the offered addon was mounted.
+		addon::CompletePending(clientInfo.downloadedAddons, clientInfo.currentPendingAddon,
+		                       Plat_FloatTime() - clientInfo.lastActiveTime, s2_extra_addons_timeout.Get());
 	}
 
 	clientInfo.lastActiveTime = Plat_FloatTime();

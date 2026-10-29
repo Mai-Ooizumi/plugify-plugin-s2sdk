@@ -36,8 +36,7 @@ int main() {
 		addon::ForConnection(reply, downloaded, pending);
 		CHECK((reply == Names{map}));
 		CHECK(pending == map);
-		downloaded.push_back(pending);
-		pending.clear();
+		CHECK(addon::CompletePending(downloaded, pending, 0.1, 10.0));
 		auto remaining = mounts;
 		for (const auto& name : downloaded)
 			std::erase(remaining, name);
@@ -46,13 +45,34 @@ int main() {
 		reply = mounts;
 		addon::ForConnection(reply, downloaded, pending);
 		CHECK(reply == mounts);
-		downloaded.push_back(pending);
-		pending.clear();
+		CHECK(addon::CompletePending(downloaded, pending, 0.1, 10.0));
 		reply = mounts;
 		addon::ForConnection(reply, downloaded, pending);
 		CHECK(reply == mounts);
 		CHECK(pending.empty());
 	}
+
+	// Engine order: OnClientConnected fires before ReplyConnection; it cannot
+	// acknowledge the addon that ReplyConnection has not offered yet.
+	Names downloaded;
+	std::string offered;
+	CHECK(!addon::CompletePending(downloaded, offered, 0.0, 10.0));
+	auto reply = addon::WithMap("de_debris", buttons);
+	addon::ForConnection(reply, downloaded, offered);
+	CHECK(offered == "de_debris");
+	CHECK(downloaded.empty());
+	// The later ClientConnect gate acknowledges it before the next signon.
+	CHECK(addon::CompletePending(downloaded, offered, 0.1, 10.0));
+	auto next = addon::WithMap("de_debris", buttons);
+	for (const auto& name : downloaded)
+		std::erase(next, name);
+	CHECK((next == Names{"3763619947"}));
+	CHECK(std::ranges::find(next, "de_debris") == next.end());
+	// A timed-out download must not be acknowledged on a later connection.
+	offered = "3763619947";
+	CHECK(!addon::CompletePending(downloaded, offered, 11.0, 10.0));
+	CHECK(offered.empty());
+	CHECK((downloaded == Names{"de_debris"}));
 
 	// Existing numeric callers and addon order/deduplication remain unchanged.
 	CHECK((addon::WithMap("123", std::vector<uint64_t>{123, 3763619947, 3763619947}) == Names{"123", "3763619947"}));
