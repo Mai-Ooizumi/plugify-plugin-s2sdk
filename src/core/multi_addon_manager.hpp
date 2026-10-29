@@ -6,6 +6,7 @@
 #include <networksystem/inetworkserializer.h>
 #include <steam/steam_api_common.h>
 #include <steam/isteamugc.h>
+#include "addon_identity.hpp"
 
 class CServerSideClient;
 
@@ -32,15 +33,16 @@ public:
 	void ReloadMap();
 	void RestoreCurrentWorkshopMap(std::string_view map);
 
-	PublishedFileId_t GetCurrentWorkshopMap() const { return m_currentWorkshopMap; }
-	void SetCurrentWorkshopMap(PublishedFileId_t workshopID) { m_currentWorkshopMap = workshopID; }
-	void ClearCurrentWorkshopMap() { m_currentWorkshopMap = k_PublishedFileIdInvalid; }
+	PublishedFileId_t GetCurrentWorkshopMap() const { return addon::WorkshopId(m_currentMapAddon); }
+	void SetCurrentWorkshopMap(PublishedFileId_t workshopID) { m_currentMapAddon = workshopID ? std::to_string(workshopID) : ""; }
+	void ClearCurrentWorkshopMap() { m_currentMapAddon.clear(); }
 
 	static bool HasUGCConnection();
 	void AddClientAddon(PublishedFileId_t addon, uint64 steamID64 = 0, bool refresh = false);
 	void RemoveClientAddon(PublishedFileId_t addon, uint64 steamID64 = 0);
 	void ClearClientAddons(uint64 steamID64 = 0);
 	plg::vector<PublishedFileId_t> GetClientAddons(uint64 steamID64 = 0);
+	std::vector<std::string> GetClientMountAddons(uint64 steamID64 = 0);
 
 public:
 	void OnPluginStart();
@@ -72,7 +74,8 @@ private:
 	STEAM_GAMESERVER_CALLBACK_MANUAL(MultiAddonManager, OnAddonDownloaded, DownloadItemResult_t, m_CallbackDownloadItemResult);
 
 	// Used when reloading current map
-	PublishedFileId_t m_currentWorkshopMap{k_PublishedFileIdInvalid};
+	// Official community maps use names, not Steam Workshop IDs.
+	std::string m_currentMapAddon;
 	bool m_callbackRegistered{};
 };
 inline MultiAddonManager& g_MultiAddonManager = MultiAddonManager::Instance();

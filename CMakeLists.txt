@@ -268,6 +268,22 @@ if(S2SDK_BUILD_EVENT_MANAGER_SELFCHECK)
             COMMAND s2sdk-event-manager-lifecycle-selfcheck)
 endif()
 
+option(S2SDK_BUILD_MULTI_ADDON_SELFCHECK "Build the multi-addon identity self-check" OFF)
+if(S2SDK_BUILD_MULTI_ADDON_SELFCHECK)
+    enable_testing()
+    add_executable(s2sdk-multi-addon-identity-selfcheck EXCLUDE_FROM_ALL
+            tests/multi_addon_identity_selfcheck.cpp)
+    target_include_directories(s2sdk-multi-addon-identity-selfcheck PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(MSVC)
+        target_compile_options(s2sdk-multi-addon-identity-selfcheck PRIVATE /W4 /WX)
+    else()
+        target_compile_options(s2sdk-multi-addon-identity-selfcheck PRIVATE -Wall -Wextra -Werror)
+    endif()
+    add_test(NAME s2sdk-multi-addon-identity-selfcheck
+            COMMAND s2sdk-multi-addon-identity-selfcheck)
+endif()
+
 if(NOT COMPILER_SUPPORTS_FORMAT)
     #target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
 endif()

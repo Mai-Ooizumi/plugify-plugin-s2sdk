@@ -181,6 +181,21 @@ csgo/
     cmake --build .
     ```
    
+### Multi-addon regression check
+
+The internal mount list preserves official community-map addon names alongside numeric
+Workshop IDs. Steam downloads and the existing numeric addon API still use Workshop IDs.
+
+```bash
+cmake -S . -B build -DS2SDK_BUILD_MULTI_ADDON_SELFCHECK=ON
+cmake --build build --target s2sdk-multi-addon-identity-selfcheck --config Release
+ctest --test-dir build -C Release -R s2sdk-multi-addon --output-on-failure
+```
+
+The self-check covers addon identity, ordering and the connection handshake. Engine
+acceptance additionally requires connecting, reconnecting and changing maps with the
+button pack enabled on `de_debris`, `de_fachwerk` and `de_poseidon`.
+
 ## Documentation
 
 For a complete list of functions, parameters, and examples, please visit our documentation site at: [Plugify Source 2 Documentation](https://api.plugify.net?file=https://raw.githubusercontent.com/untrustedmodders/plugify-plugin-s2sdk/refs/heads/main/plugify-plugin-s2sdk.pplugin.in).
