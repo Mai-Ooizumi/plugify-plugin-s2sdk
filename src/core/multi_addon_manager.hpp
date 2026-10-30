@@ -6,9 +6,11 @@
 #include <networksystem/inetworkserializer.h>
 #include <steam/steam_api_common.h>
 #include <steam/isteamugc.h>
+#include <steam/isteamuser.h>
 #include "addon_identity.hpp"
 
 class CServerSideClient;
+class CServerSideClientBase;
 
 class MultiAddonManager {
 	MultiAddonManager() = default;
@@ -46,18 +48,19 @@ public:
 
 public:
 	void OnPluginStart();
+	void OnPluginEnd();
 	void OnSteamAPIActivated(bool reloadMap = true);
-	void OnSteamAPIDeactivated();
 	void OnStartupServer();
-	void OnClientConnect(CPlayerSlot slot, const char* name, uint64 steamID64, const char* networkID);
+	void OnClientConnect(uint64 steamID64);
 	void OnClientDisconnect(CPlayerSlot slot, const char* name, uint64 steamID64, const char* networkID);
 	void OnClientActive(CPlayerSlot slot, bool loadGame, const char* name, uint64 steamID64);
 	void OnGameFrame();
 	void OnPostEvent(INetworkMessageInternal* message, CNetMessage* data, uint64_t* clients);
 
-	void OnSendNetMessage(CServerSideClient* client, CNetMessage* data, NetChannelBufType_t bufType);
+	void OnSendNetMessage(CServerSideClientBase* client, CNetMessage* data, NetChannelBufType_t bufType);
 	void OnHostStateRequest(CHostStateMgr* manager, CHostStateRequest* request);
-	void OnReplyConnection(CNetworkGameServerBase* server, CServerSideClient* client);
+	void OnSwitchToLoop(const char* loopModeName);
+	bool OnReplyConnection(CNetworkGameServerBase* server, CServerSideClient* client);
 	void OnReplyConnection_Post(CNetworkGameServerBase* server, CServerSideClient* client);
 	uint64 OnScriptGetAddon();
 
@@ -68,15 +71,23 @@ public:
 
 private:
 	plg::vector<PublishedFileId_t> m_importantDownloads; // Important addon downloads that will trigger a map reload when finished
+	struct AddonDownloadInfo {
+		PublishedFileId_t addon;
+		bool important;
+		bool force;
+	};
+	plg::vector<AddonDownloadInfo> m_preSteamLoginDownloads; // Downloads that failed to start because the server wasn't logged on to Steam yet
 	std::deque<PublishedFileId_t> m_downloadQueue; // Queue of all addon downloads to print progress
 	std::set<uint64> m_timedOutClients;
 
 	STEAM_GAMESERVER_CALLBACK_MANUAL(MultiAddonManager, OnAddonDownloaded, DownloadItemResult_t, m_CallbackDownloadItemResult);
+	STEAM_GAMESERVER_CALLBACK_MANUAL(MultiAddonManager, OnSteamServersConnected, SteamServersConnected_t, m_CallbackSteamServersConnected);
 
+	// Set when the host state request is made, becomes current once the level actually starts loading
+	std::string m_loadingMapAddon;
 	// Used when reloading current map
 	// Official community maps use names, not Steam Workshop IDs.
 	std::string m_currentMapAddon;
-	bool m_callbackRegistered{};
 };
 inline MultiAddonManager& g_MultiAddonManager = MultiAddonManager::Instance();
 

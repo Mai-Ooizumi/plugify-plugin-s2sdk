@@ -12,6 +12,7 @@
 #include <filesystem.h>
 #include <gameevents.h>
 #include <steam/steam_gameserver.h>
+#include <steamenumstrings.h>
 #include <iserver.h>
 #include <hoststate.h>
 
@@ -194,6 +195,11 @@ bool MultiAddonManager::DownloadAddon(PublishedFileId_t addon, bool important, b
 	if (!g_pSteamUGC->DownloadItem(addon, false)) {
 		plg::print(LS_WARNING, "{}: Addon download for {} failed to start, addon ID is invalid or server is not logged on Steam\n",
 		      __func__, addon);
+
+		// Most likely the server hasn't logged on to Steam yet, retry once it does (see OnSteamServersConnected)
+		if (!std::ranges::contains(m_preSteamLoginDownloads, addon, &AddonDownloadInfo::addon)) {
+			m_preSteamLoginDownloads.emplace_back(addon, important, force);
+		}
 		return false;
 	}
 
@@ -271,14 +277,17 @@ void MultiAddonManager::RestoreCurrentWorkshopMap(std::string_view map) {
 void MultiAddonManager::OnAddonDownloaded(DownloadItemResult_t* result) {
 	if (result->m_eResult == k_EResultOK)
 		plg::print(LS_MESSAGE, "Addon {} downloaded successfully\n", static_cast<PublishedFileId_t>(result->m_nPublishedFileId));
-	else
-		plg::print(LS_WARNING, "Addon {} download failed with status {}\n", static_cast<PublishedFileId_t>(result->m_nPublishedFileId), static_cast<int>(result->m_eResult));
+	else {
+		plg::print(LS_WARNING, "Addon {} download failed with reason \"{}\" ({})\n", static_cast<PublishedFileId_t>(result->m_nPublishedFileId), EResultToString(result->m_eResult), static_cast<int>(result->m_eResult));
+	}
+
+	plg::erase_if(m_preSteamLoginDownloads, [&](const auto& download) { return download.addon == result->m_nPublishedFileId; });
 
 	// This download isn't triggered by us, don't do anything
 	if (!std::ranges::contains(m_downloadQueue, result->m_nPublishedFileId))
 		return;
 
-	m_downloadQueue.pop_front();
+	std::erase(m_downloadQueue, result->m_nPublishedFileId);
 
 	auto found = plg::erase(m_importantDownloads, result->m_nPublishedFileId);
 
@@ -301,7 +310,7 @@ bool MultiAddonManager::AddAddon(PublishedFileId_t addon, bool refresh) {
 
 	// Update the convar to reflect the new addon list, but don't trigger the callback
 	s2_extra_addons.GetConVarData()->Value(0)->m_StringValue = plg::join(m_extraAddons, ",");
-	plg::print(LS_MESSAGE, "Clearing client cache due to addons changing");
+	plg::print(LS_MESSAGE, "Clearing client cache due to addons changing\n");
 
 	if (refresh) {
 		RefreshAddons();
@@ -321,7 +330,7 @@ bool MultiAddonManager::RemoveAddon(PublishedFileId_t addon, bool refresh) {
 	// Update the convar to reflect the new addon list, but don't trigger the callback
 	s2_extra_addons.GetConVarData()->Value(0)->m_StringValue = plg::join(m_extraAddons, ",");
 
-	plg::print(LS_MESSAGE, "Clearing client cache due to addons changing");
+	plg::print(LS_MESSAGE, "Clearing client cache due to addons changing\n");
 
 	if (refresh) {
 		RefreshAddons();
@@ -343,27 +352,36 @@ void MultiAddonManager::OnPluginStart() {
 	g_ConVarManager.AutoExecConfig(conVarHandles, true, "multi_addon_manager", "");
 	m_extraAddons = plg::parse<PublishedFileId_t>(s2_extra_addons.Get(), ",");
 	m_globalClientAddons = plg::parse<PublishedFileId_t>(s2_client_extra_addons.Get(), ",");
+
+	// Steam can log on before GameServerSteamAPIActivated, so register callbacks right away
+	if (g_pEngineServer->IsDedicatedServer()) {
+		m_CallbackDownloadItemResult.Register(this, &MultiAddonManager::OnAddonDownloaded);
+		m_CallbackSteamServersConnected.Register(this, &MultiAddonManager::OnSteamServersConnected);
+	}
+}
+
+void MultiAddonManager::OnPluginEnd() {
+	m_CallbackDownloadItemResult.Unregister();
+	m_CallbackSteamServersConnected.Unregister();
 }
 
 void MultiAddonManager::OnSteamAPIActivated(bool reloadMap) {
-	if (m_callbackRegistered)
-		return;
-
-	if (g_pEngineServer->IsDedicatedServer()) {
-		m_callbackRegistered = true;
-		m_CallbackDownloadItemResult.Register(this, &MultiAddonManager::OnAddonDownloaded);
-	}
-
 	plg::print(LS_MESSAGE, "Refreshing addons to check for updates\n");
 	RefreshAddons(reloadMap);
 }
 
-void MultiAddonManager::OnSteamAPIDeactivated() {
-	if (!m_callbackRegistered)
+void MultiAddonManager::OnSteamServersConnected(SteamServersConnected_t* result) {
+	plg::print(LS_MESSAGE, "Logged on to Steam\n");
+
+	if (m_preSteamLoginDownloads.empty())
 		return;
 
-	m_CallbackDownloadItemResult.Unregister();
-	m_callbackRegistered = false;
+	// Downloads requested before the server logged on to Steam fail to start, so retry them now
+	plg::print(LS_MESSAGE, "Retrying {} pending addon download(s)\n", m_preSteamLoginDownloads.size());
+
+	for (const auto& download : std::exchange(m_preSteamLoginDownloads, {})) {
+		DownloadAddon(download.addon, download.important, download.force);
+	}
 }
 
 void MultiAddonManager::OnStartupServer() {
@@ -400,7 +418,7 @@ CNETMsg_SignonState_t* GetAddonSignonStateMessage(PublishedFileId_t addon) {
 }
 
 bool MultiAddonManager::HasUGCConnection() {
-	return g_pSteamUGC != nullptr;
+	return g_pSteamUGC != nullptr && g_pSteam->BLoggedOn();
 }
 
 void MultiAddonManager::AddClientAddon(PublishedFileId_t addon, uint64 steamID64, bool refresh) {
@@ -436,33 +454,31 @@ void MultiAddonManager::AddClientAddon(PublishedFileId_t addon, uint64 steamID64
 			if (client->GetNetChannel() == nullptr)
 				continue;
 
-			if (steamID64 == 0 || client->GetClientSteamID().ConvertToUint64() == steamID64) {
-				// Client is already loading, telling them to reload now will actually just disconnect them. ("Received signon %i when at %i\n" in client console)
-				if (client->GetSignonState() == SIGNONSTATE_CHANGELEVEL)
-					break;
+			uint64 clientSteamID64 = client->GetClientSteamID().ConvertToUint64();
+			if (steamID64 != 0 && clientSteamID64 != steamID64)
+				continue;
 
-				ClientAddonInfo& clientInfo = g_ClientAddons[steamID64];
+			// Client is already loading, telling them to reload now will actually just disconnect them. ("Received signon %i when at %i\n" in client console)
+			if (client->GetSignonState() == SIGNONSTATE_CHANGELEVEL)
+				continue;
 
-				// Client still has addons to load anyway, they don't need to be told to reload
-				if (!clientInfo.currentPendingAddon.empty())
-					break;
+			ClientAddonInfo& clientInfo = g_ClientAddons[clientSteamID64];
 
-				auto addons = GetClientMountAddons(steamID64);
+			// Client still has addons to load anyway, they don't need to be told to reload
+			if (!clientInfo.currentPendingAddon.empty())
+				continue;
 
-				for (const auto& downloadedAddon : clientInfo.downloadedAddons) {
-					std::erase(addons, downloadedAddon);
-				}
-
-				if (addons.empty())
-					break;
-
-				clientInfo.currentPendingAddon = addons.front();
-
-				client->GetNetChannel()->SendNetMessage(msg, BUF_RELIABLE);
-
-				if (steamID64)
-					break;
+			auto addons = GetClientMountAddons(clientSteamID64);
+			for (const auto& downloadedAddon : clientInfo.downloadedAddons) {
+				std::erase(addons, downloadedAddon);
 			}
+
+			if (addons.empty())
+				continue;
+
+			clientInfo.currentPendingAddon = addons.front();
+
+			client->GetNetChannel()->SendNetMessage(msg, BUF_RELIABLE);
 		}
 		delete msg;
 	}
@@ -590,6 +606,8 @@ void MultiAddonManager::OnHostStateRequest(CHostStateMgr* manager, CHostStateReq
 	// Also, host state requests coming from that function will always have "ChangeLevel" in its KV's name.
 	// We can use this information to always be aware of what the original addon is.
 
+	m_loadingMapAddon = m_currentMapAddon;
+
 	if (!request->m_pKV) {
 		std::string_view level = request->m_LevelName;
 		// g_pEngineServer->IsMapValid takes into account mounted addons so we have to do this instead
@@ -599,19 +617,19 @@ void MultiAddonManager::OnHostStateRequest(CHostStateMgr* manager, CHostStateReq
 		// Workshop map changes from end of match votes have null keyvalues
 		// ...and when such votes lead to reloading the CURRENT map, m_Addons will also be null, in which case we want to keep the workshop map unchanged
 		if (!request->m_Addons.IsEmpty()) {
-			m_currentMapAddon = addon::First(request->m_Addons.String());
+			m_loadingMapAddon = addon::First(request->m_Addons.String());
 		}
 		// Sadly this will include any workshop maps that share names with shipped Valve maps, but at this point there's no way to tell
 		else if (valveMap) {
-			m_currentMapAddon.clear();
+			m_loadingMapAddon.clear();
 		}
 	} else {
 		std::string_view name = request->m_pKV->GetName();
 		if (name != "ChangeLevel") {
 			if (name == "map_workshop") {
-				m_currentMapAddon = addon::First(request->m_pKV->GetString("customgamemode", ""));
+				m_loadingMapAddon = addon::First(request->m_pKV->GetString("customgamemode", ""));
 			} else {
-				m_currentMapAddon.clear();
+				m_loadingMapAddon.clear();
 			}
 		}
 	}
@@ -621,7 +639,7 @@ void MultiAddonManager::OnHostStateRequest(CHostStateMgr* manager, CHostStateReq
 	// So check if the addon is indeed one of the community maps and keep it, otherwise clients would error out due to missing assets
 	// Each map has its own folder under game/csgo_community_addons which is mounted as "OFFICIAL_ADDONS"
 	if (!request->m_Addons.IsEmpty() && g_pFullFileSystem->IsDirectory(request->m_Addons.String(), "OFFICIAL_ADDONS")) {
-		m_currentMapAddon = request->m_Addons.String();
+		m_loadingMapAddon = request->m_Addons.String();
 	}
 
 	if (g_MultiAddonManager.m_extraAddons.empty()) {
@@ -629,12 +647,18 @@ void MultiAddonManager::OnHostStateRequest(CHostStateMgr* manager, CHostStateReq
 	}
 
 	// Keep the original map addon first, whether it is a name or a Workshop ID.
-	request->m_Addons = plg::join(addon::WithMap(m_currentMapAddon, m_extraAddons), ",");
+	request->m_Addons = plg::join(addon::WithMap(m_loadingMapAddon, m_extraAddons), ",");
+}
+
+void MultiAddonManager::OnSwitchToLoop(const char* loopModeName) {
+	// The request may be discarded or replaced, so only take the workshop map once the level actually starts loading
+	if (!V_stricmp(loopModeName, "levelload"))
+		m_currentMapAddon = m_loadingMapAddon;
 }
 
 static CUtlString originalAddons;
 
-void MultiAddonManager::OnReplyConnection(CNetworkGameServerBase* server, CServerSideClient* client) {
+bool MultiAddonManager::OnReplyConnection(CNetworkGameServerBase* server, CServerSideClient* client) {
 	uint64 steamID64 = client->GetClientSteamID().ConvertToUint64();
 
 	// Clear cache if necessary.
@@ -656,7 +680,7 @@ void MultiAddonManager::OnReplyConnection(CNetworkGameServerBase* server, CServe
 		// No addons to send. This means the list of original addons is empty as well.
 		//assert(originalAddons.IsEmpty());
 		clientInfo.currentPendingAddon.clear();
-		return;
+		return false;
 	}
 
 	if (clientInfo.connectedState != CLIENTCONN_CONNECTING) {
@@ -667,15 +691,17 @@ void MultiAddonManager::OnReplyConnection(CNetworkGameServerBase* server, CServe
 		clientInfo.connectedState == CLIENTCONN_CONNECTING &&
 		Plat_FloatTime() - clientInfo.connectionStartTime > s2_addon_connection_timeout.Get()) {
 		// Can't kick right now as this will crash on windows, so defer to the next frame
+		// Don't call the original either, otherwise the client still gets the full unfiltered addon list
 		m_timedOutClients.insert(steamID64);
-		return;
+		return true;
 	}
 
 	addon::ForConnection(clientAddons, clientInfo.downloadedAddons, clientInfo.currentPendingAddon);
 
 	addon = plg::join(clientAddons, ",");
 
-	plg::print(LS_MESSAGE, "{}: Sending addons {} to steamID64 {}\n", __func__, *addon, steamID64);
+	plg::print(LS_MESSAGE, "{}: Sending addons {} to steamID64 {}\n", __func__, addon.Get(), steamID64);
+	return false;
 }
 
 void MultiAddonManager::OnReplyConnection_Post(CNetworkGameServerBase* server, CServerSideClient* client) {
@@ -689,7 +715,7 @@ uint64 MultiAddonManager::OnScriptGetAddon() {
 	return GetCurrentWorkshopMap();
 }
 
-void MultiAddonManager::OnSendNetMessage(CServerSideClient* client, CNetMessage* data, NetChannelBufType_t bufType) {
+void MultiAddonManager::OnSendNetMessage(CServerSideClientBase* client, CNetMessage* data, NetChannelBufType_t bufType) {
 	uint64 steamID64 = client->GetClientSteamID().ConvertToUint64();
 	ClientAddonInfo& clientInfo = g_ClientAddons[steamID64];
 
@@ -783,7 +809,7 @@ void MultiAddonManager::OnPostEvent(INetworkMessageInternal* message, CNetMessag
 	}
 }
 
-void MultiAddonManager::OnClientConnect(CPlayerSlot slot, const char* name, uint64 steamID64, const char* networkID) {
+void MultiAddonManager::OnClientConnect(uint64 steamID64) {
 	ClientAddonInfo& clientInfo = g_ClientAddons[steamID64];
 	clientInfo.connectedState = CLIENTCONN_JOINED;
 
