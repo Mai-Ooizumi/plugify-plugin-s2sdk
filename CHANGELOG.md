@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.1.1](https://github.com/untrustedmodders/plugify-plugin-s2sdk/compare/v3.1.0...v3.1.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* replace Cyrillic letter in schema mismatch warning ([3e6ac10](https://github.com/untrustedmodders/plugify-plugin-s2sdk/commit/3e6ac10b5ad3dedce9cfc163f2cc9ab5be69cc5d))
+* skip size check for schema wrappers and chain entity ([4aef9d9](https://github.com/untrustedmodders/plugify-plugin-s2sdk/commit/4aef9d977354f29554cb172429723ed380604cd6))
+
+## [3.1.0](https://github.com/untrustedmodders/plugify-plugin-s2sdk/compare/v3.0.6...v3.1.0) (2026-11-02)
+
+
+### Features
+
+* add private addons and addon exports ([a909889](https://github.com/untrustedmodders/plugify-plugin-s2sdk/commit/a909889afbc102633866557e1178f32202988fce))
+
+
+### Bug Fixes
+
+* bind `CNetworkGameServer` hooks to object lifecycle ([9571269](https://github.com/untrustedmodders/plugify-plugin-s2sdk/commit/9571269b86f601f14b37b16b4f6bb506cccc9773))
+
 ## [3.0.6](https://github.com/untrustedmodders/plugify-plugin-s2sdk/compare/v3.0.5...v3.0.6) (2026-10-30)
 
 
