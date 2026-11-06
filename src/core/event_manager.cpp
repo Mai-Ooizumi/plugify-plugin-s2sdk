@@ -12,7 +12,7 @@ void EventManager::Shutdown() {
 	}
 	m_hookMap.clear();
 	while (!m_eventCopies.empty()) {
-		if (g_pGameEventManager) {
+		if (g_pGameEventManager && m_eventCopies.top()) {
 			g_pGameEventManager->FreeEvent(m_eventCopies.top());
 		}
 		m_eventCopies.pop();
@@ -123,7 +123,7 @@ ResultType EventManager::OnFireEvent(IGameEvent* event, const bool dontBroadcast
 					localDontBroadcast = event->GetBool("dont_broadcast");
 
 					if (result >= ResultType::Handled) {
-						// m_EventCopies.push(g_gameEventManager->DuplicateEvent(pEvent));
+						m_eventCopies.push(nullptr);
 						g_pGameEventManager->FreeEvent(event);
 						return ResultType::Handled;
 					}
@@ -131,9 +131,7 @@ ResultType EventManager::OnFireEvent(IGameEvent* event, const bool dontBroadcast
 			}
 		}
 
-		if (hook->postCopy) {
-			m_eventCopies.push(g_pGameEventManager->DuplicateEvent(event));
-		}
+		m_eventCopies.push(hook->postCopy ? g_pGameEventManager->DuplicateEvent(event) : nullptr);
 	} else {
 		m_eventStack.push(nullptr);
 	}
@@ -150,20 +148,18 @@ ResultType EventManager::OnFireEvent_Post(IGameEvent* event, bool dontBroadcast)
 		return ResultType::Continue;
 
 	if (auto hook = m_eventStack.top()) {
-		auto& postHook = hook->callbacks[HookMode::Post];
-		if (!postHook.Empty()) {
-			if (hook->postCopy) {
-				auto eventCopy = m_eventCopies.top();
+		auto eventCopy = m_eventCopies.top();
+		m_eventCopies.pop();
+
+		if (eventCopy) {
+			auto& postHook = hook->callbacks[HookMode::Post];
+			if (!postHook.Empty()) {
 				plg::print(LS_DETAILED, "Pushing event `{}` pointer: {}, dont broadcast: {}, post: {}\n", eventCopy->GetName(), static_cast<const void*>(eventCopy), dontBroadcast, true);
 
 				postHook(hook->name, eventCopy, dontBroadcast);
-
-				g_pGameEventManager->FreeEvent(eventCopy);
-
-				m_eventCopies.pop();
-			} else {
-				postHook(hook->name, nullptr, dontBroadcast);
 			}
+
+			g_pGameEventManager->FreeEvent(eventCopy);
 		}
 
 		if (hook->FinishDispatch()) {

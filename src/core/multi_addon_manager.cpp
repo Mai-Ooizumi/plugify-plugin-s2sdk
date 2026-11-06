@@ -20,12 +20,12 @@
 #include "game_config.hpp"
 #include "sdk/utils.hpp"
 
-CConVar<bool> s2_addon_mount_download("s2_addon_mount_download", FCVAR_NONE, "Whether to download an addon upon mounting even if it's installed", false);
+CConVar<bool> s2_addon_mount_download("s2_addon_mount_download", FCVAR_NONE, "Whether to check for updates of an installed addon upon mounting, an update applies from the next mount. A missing addon is always downloaded", false);
 CConVar<bool> s2_block_disconnect_messages("s2_block_disconnect_messages", FCVAR_NONE, "Whether to block \"loop shutdown\" disconnect messages", false);
 CConVar<bool> s2_cache_clients_with_addons("s2_cache_clients_with_addons", FCVAR_NONE, "Whether to cache clients addon download list, this will prevent reconnects on mapchange/rejoin", false);
 CConVar<double> s2_cache_clients_duration("s2_cache_clients_duration", FCVAR_NONE, "How long to cache clients' downloaded addons list in seconds, pass 0 for forever.", 0.0);
 CConVar<double> s2_extra_addons_timeout("s2_extra_addons_timeout", FCVAR_NONE, "How long until clients are timed out in between connects for extra addons in seconds, requires s2_extra_addons to be used", 10.0);
-CConVar<float> s2_addon_connection_timeout("s2_addon_connection_timeout", FCVAR_NONE, "How long until clients are timed out while downloading the first required addon (usually the current map), 0 disables", 30.f);
+CConVar<float> s2_addon_connection_timeout("s2_addon_connection_timeout", FCVAR_NONE, "How long until clients are timed out while downloading the first required addon (usually the current map), 0 disables", 300.f);
 
 enum ClientConnectedState_t {
 	CLIENTCONN_NONE,
@@ -405,12 +405,13 @@ bool MultiAddonManager::RemovePrivateAddon(PublishedFileId_t addon, bool refresh
 }
 
 void MultiAddonManager::OnPluginStart() {
-	std::array<uint64, 9> conVarHandles = {
+	std::array<uint64, 10> conVarHandles = {
 		s2_addon_mount_download,
 		s2_block_disconnect_messages,
 		s2_cache_clients_with_addons,
 		s2_cache_clients_duration,
 		s2_extra_addons_timeout,
+		s2_addon_connection_timeout,
 		s2_extra_addons,
 		s2_client_extra_addons,
 		s2_private_addons,
@@ -781,13 +782,16 @@ static CUtlString originalAddons;
 bool MultiAddonManager::OnReplyConnection(CNetworkGameServerBase* server, CServerSideClient* client) {
 	uint64 steamID64 = client->GetClientSteamID().ConvertToUint64();
 
-	// Clear cache if necessary.
 	ClientAddonInfo& clientInfo = g_ClientAddons[steamID64];
-	if (s2_cache_clients_with_addons.Get() && s2_cache_clients_duration.Get() != 0 && Plat_FloatTime() - clientInfo.lastActiveTime > s2_cache_clients_duration.Get()) {
+	// Clear cache if necessary, unless the client is still downloading addons.
+	double timeAway = Plat_FloatTime() - clientInfo.lastActiveTime;
+	bool pendingInTime = !clientInfo.currentPendingAddon.empty() && timeAway <= s2_extra_addons_timeout.Get();
+	if (s2_cache_clients_with_addons.Get() && s2_cache_clients_duration.Get() != 0 && !clientInfo.downloadedAddons.empty() && !pendingInTime && timeAway > s2_cache_clients_duration.Get()) {
 		plg::print(LS_MESSAGE, "{}: Client {} has not connected for a while, clearing the cache\n", __func__, steamID64);
 		clientInfo.currentPendingAddon.clear();
 		clientInfo.downloadedAddons.clear();
 	}
+
 	clientInfo.lastActiveTime = Plat_FloatTime();
 
 	// Server copies the CUtlString from CNetworkGameServer to this client.
@@ -803,7 +807,9 @@ bool MultiAddonManager::OnReplyConnection(CNetworkGameServerBase* server, CServe
 		return false;
 	}
 
-	if (clientInfo.connectedState != CLIENTCONN_CONNECTING) {
+	// A downloading client keeps asking until it reconnects
+	bool firstReply = clientInfo.connectedState != CLIENTCONN_CONNECTING;
+	if (firstReply) {
 		clientInfo.connectionStartTime = Plat_FloatTime();
 		clientInfo.connectedState = CLIENTCONN_CONNECTING;
 	}
@@ -820,7 +826,9 @@ bool MultiAddonManager::OnReplyConnection(CNetworkGameServerBase* server, CServe
 
 	addon = plg::join(clientAddons, ",");
 
-	plg::print(LS_MESSAGE, "{}: Sending addons {} to steamID64 {}\n", __func__, addon.Get(), steamID64);
+	if (firstReply) {
+		plg::print(LS_MESSAGE, "{}: Sending addons {} to steamID64 {}\n", __func__, addon.Get(), steamID64);
+	}
 	return false;
 }
 
@@ -887,6 +895,23 @@ void MultiAddonManager::OnSendNetMessage(CServerSideClientBase* client, CNetMess
 	clientInfo.currentPendingAddon = addons.front();
 	msg->set_addons(addons.front());
 	msg->set_signon_state(SIGNONSTATE_CHANGELEVEL);
+}
+
+void MultiAddonManager::OnSerializeMessage(const CNetMessage* data) {
+	INetworkSerializerPB* serializerPB = data->GetSerializerPB();
+	if (!serializerPB || serializerPB->GetNetMessageInfo()->m_MessageId != svc_ServerInfo || m_privateAddons.empty()) {
+		return;
+	}
+
+	auto msg = const_cast<CNetMessage*>(data)->As<CSVCMsg_ServerInfo_t>();
+
+	// The engine sends its full addon list here too, and the client it goes to is unknown at this point
+	auto addonsList = addon::Split(msg->addon_name());
+	std::erase_if(addonsList, [&](const auto& name) {
+		auto id = addon::WorkshopId(name);
+		return id != 0 && !IsClientAddonAllowed(id, 0);
+	});
+	msg->set_addon_name(plg::join(addonsList, ",").c_str());
 }
 
 void MultiAddonManager::OnGameFrame() {

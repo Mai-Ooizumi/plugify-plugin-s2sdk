@@ -143,7 +143,7 @@ bool ConCommandManager::IsValidValveCommand(std::string_view name) {
 	return commandRef.IsValidRef();
 }
 
-static bool CheckCommandAccess(CPlayerSlot slot, const plg::string& permission) {
+static bool CheckCommandAccess(CPlayerSlot slot, const plg::string& permission, bool notify) {
 	if (permission.empty()) {
 		return true;
 	}
@@ -162,8 +162,11 @@ static bool CheckCommandAccess(CPlayerSlot slot, const plg::string& permission) 
 		return false;
 	}
 
-	if (permissions::HasPermission(player->GetSteamId().ConvertToUint64(), permission) != permissions::Status::Allow) {
-		utils::PrintChat(slot, lang::Get(slot, "S2SDK.Command.NoAccess").value_or("You don't have access to this command."));
+	CSteamID steamID = player->GetSteamId(true);
+	if (!steamID.IsValid() || permissions::HasPermission(steamID.ConvertToUint64(), permission) != permissions::Status::Allow) {
+		if (notify) {
+			utils::PrintChat(slot, lang::Get(slot, "S2SDK.Command.NoAccess").value_or("You don't have access to this command."));
+		}
 		return false;
 	}
 
@@ -211,7 +214,7 @@ ResultType ConCommandManager::ExecuteCommandCallbacks(std::string_view name, con
 	if (it != m_cmdLookup.end()) {
 		auto commandInfo = it->second;
 
-		if (!CheckCommandAccess(caller, commandInfo->permission)) {
+		if (!CheckCommandAccess(caller, commandInfo->permission, mode == HookMode::Post)) {
 			return result;
 		}
 
@@ -260,7 +263,8 @@ ResultType ConCommandManager::DispatchConCommand(const CCommandContext* ctx, con
     		std::string_view message_sv = args->ArgS();
     		trim_left(message_sv, '"');
     		trim_right(message_sv, '"');
-    		message_sv.remove_prefix(1);
+    		trim_left(message_sv, ' ');
+    		message_sv.remove_prefix(g_pCoreConfig->GetChatTriggerLength(message_sv));
 
     		CCommand nargs;
     		nargs.Tokenize(CUtlString(message_sv));

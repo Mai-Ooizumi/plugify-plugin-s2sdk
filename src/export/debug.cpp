@@ -191,7 +191,21 @@ extern "C" PLUGIN_API void DebugScriptAssert(bool assertion, const plg::string& 
 	Debug{}.DoScriptAssert(assertion, message.c_str());
 }
 
-#if 0 //  to work require CDebugOverlayScriptHelper
+namespace {
+	CDebugOverlayScriptHelper* GetDebugOverlay() {
+		auto* overlay = static_cast<CDebugOverlayScriptHelper*>(vscript::GetInstance(CDebugOverlayScriptHelper::m_className));
+		if (!overlay) {
+			plg::print(LS_WARNING, "Debug overlay helper is not available yet\n");
+		}
+		return overlay;
+	}
+
+	// The game reads quaternions with aligned SSE loads
+	struct AlignedQuaternion {
+		alignas(16) Quaternion value;
+	};
+}// namespace
+
 /**
  * @brief Draws an axis at a specified world-space origin.
  *
@@ -201,8 +215,10 @@ extern "C" PLUGIN_API void DebugScriptAssert(bool assertion, const plg::string& 
  * @param zTest Whether to perform depth testing.
  * @param duration Duration (in seconds) to display the axis.
  */
-extern "C" PLUGIN_API void DebugAxis(const plg::vec3& origin, const plg::quat& orientation, float scale, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Axis(std::bit_cast<Vector>(origin), std::bit_cast<Quaternion>(orientation), scale, zTest, duration);
+extern "C" PLUGIN_API void DebugAxis(const plg::vec3& origin, const plg::vec4& orientation, float scale, bool zTest, float duration) {
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Axis(std::bit_cast<Vector>(origin), AlignedQuaternion{std::bit_cast<Quaternion>(orientation)}.value, scale, zTest, duration);
 }
 
 /**
@@ -218,7 +234,9 @@ extern "C" PLUGIN_API void DebugAxis(const plg::vec3& origin, const plg::quat& o
  * @param duration Duration (in seconds) to display the box.
  */
 extern "C" PLUGIN_API void DebugBox(const plg::vec3& mins, const plg::vec3& maxs, int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Box(std::bit_cast<Vector>(mins), std::bit_cast<Vector>(maxs), r, g, b, a, zTest, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Box(std::bit_cast<Vector>(mins), std::bit_cast<Vector>(maxs), r, g, b, a, zTest, duration);
 }
 
 /**
@@ -235,12 +253,14 @@ extern "C" PLUGIN_API void DebugBox(const plg::vec3& mins, const plg::vec3& maxs
  * @param zTest Whether to perform depth testing.
  * @param duration Duration (in seconds) to display the box.
  */
-extern "C" PLUGIN_API void DebugBoxAngles(const plg::vec3& origin, const plg::vec3& mins, const plg::vec3& maxs, const plg::quat& orientation,
+extern "C" PLUGIN_API void DebugBoxAngles(const plg::vec3& origin, const plg::vec3& mins, const plg::vec3& maxs, const plg::vec4& orientation,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.BoxAngles(std::bit_cast<Vector>(origin),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->BoxAngles(std::bit_cast<Vector>(origin),
 		std::bit_cast<Vector>(mins),
 		std::bit_cast<Vector>(maxs),
-		std::bit_cast<Quaternion>(orientation),
+		AlignedQuaternion{std::bit_cast<Quaternion>(orientation)}.value,
 		r, g, b, a, zTest, duration);
 }
 
@@ -258,15 +278,19 @@ extern "C" PLUGIN_API void DebugBoxAngles(const plg::vec3& origin, const plg::ve
  * @param zTest Whether to perform depth testing.
  * @param duration Duration (in seconds) to display the capsule.
  */
-extern "C" PLUGIN_API void DebugCapsule(const plg::vec3& origin, const plg::quat& orientation, float radius, float halfHeight,
+extern "C" PLUGIN_API void DebugCapsule(const plg::vec3& origin, const plg::vec4& orientation, float radius, float halfHeight,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Capsule(std::bit_cast<Vector>(origin),
-		std::bit_cast<Quaternion>(orientation),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Capsule(std::bit_cast<Vector>(origin),
+		AlignedQuaternion{std::bit_cast<Quaternion>(orientation)}.value,
 		radius, halfHeight, r, g, b, a, zTest, duration);
 }
 
 /**
  * @brief Draws a circle in world space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param center The center of the circle in world space.
  * @param orientation The orientation as a quaternion.
@@ -278,15 +302,19 @@ extern "C" PLUGIN_API void DebugCapsule(const plg::vec3& origin, const plg::quat
  * @param zTest Whether to perform depth testing.
  * @param duration Duration (in seconds) to display the circle.
  */
-extern "C" PLUGIN_API void DebugCircle(const plg::vec3& center, const plg::quat& orientation, float radius,
+extern "C" PLUGIN_API void DebugCircle(const plg::vec3& center, const plg::vec4& orientation, float radius,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Circle(std::bit_cast<Vector>(center),
-		std::bit_cast<Quaternion>(orientation),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Circle(std::bit_cast<Vector>(center),
+		AlignedQuaternion{std::bit_cast<Quaternion>(orientation)}.value,
 		radius, r, g, b, a, zTest, duration);
 }
 
 /**
  * @brief Draws a screen-oriented circle in world space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param center The center of the circle in world space.
  * @param radius The radius of the circle.
@@ -299,7 +327,9 @@ extern "C" PLUGIN_API void DebugCircle(const plg::vec3& center, const plg::quat&
  */
 extern "C" PLUGIN_API void DebugCircleScreenOriented(const plg::vec3& center, float radius,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.CircleScreenOriented(std::bit_cast<Vector>(center), radius, r, g, b, a, zTest, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->CircleScreenOriented(std::bit_cast<Vector>(center), radius, r, g, b, a, zTest, duration);
 }
 
 /**
@@ -318,13 +348,17 @@ extern "C" PLUGIN_API void DebugCircleScreenOriented(const plg::vec3& center, fl
  */
 extern "C" PLUGIN_API void DebugCone(const plg::vec3& origin, const plg::vec3& direction, float radius, float height,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Cone(std::bit_cast<Vector>(origin),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Cone(std::bit_cast<Vector>(origin),
 		std::bit_cast<Vector>(direction),
 		radius, height, r, g, b, a, zTest, duration);
 }
 
 /**
  * @brief Draws a screen-aligned cross in world space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param origin The center position of the cross in world space.
  * @param size The size of the cross.
@@ -336,7 +370,9 @@ extern "C" PLUGIN_API void DebugCone(const plg::vec3& origin, const plg::vec3& d
  * @param duration Duration (in seconds) to display the cross.
  */
 extern "C" PLUGIN_API void DebugCross(const plg::vec3& origin, float size, int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Cross(std::bit_cast<Vector>(origin), size, r, g, b, a, zTest, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Cross(std::bit_cast<Vector>(origin), size, r, g, b, a, zTest, duration);
 }
 
 /**
@@ -352,7 +388,9 @@ extern "C" PLUGIN_API void DebugCross(const plg::vec3& origin, float size, int r
  * @param duration Duration (in seconds) to display the cross.
  */
 extern "C" PLUGIN_API void DebugCross3D(const plg::vec3& origin, float size, int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Cross3D(std::bit_cast<Vector>(origin), size, r, g, b, a, zTest, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Cross3D(std::bit_cast<Vector>(origin), size, r, g, b, a, zTest, duration);
 }
 
 /**
@@ -368,15 +406,19 @@ extern "C" PLUGIN_API void DebugCross3D(const plg::vec3& origin, float size, int
  * @param zTest Whether to perform depth testing.
  * @param duration Duration (in seconds) to display the cross.
  */
-extern "C" PLUGIN_API void DebugCross3DOriented(const plg::vec3& origin, const plg::quat& orientation, float size,
+extern "C" PLUGIN_API void DebugCross3DOriented(const plg::vec3& origin, const plg::vec4& orientation, float size,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Cross3DOriented(std::bit_cast<Vector>(origin),
-		std::bit_cast<Quaternion>(orientation),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Cross3DOriented(std::bit_cast<Vector>(origin),
+		AlignedQuaternion{std::bit_cast<Quaternion>(orientation)}.value,
 		size, r, g, b, a, zTest, duration);
 }
 
 /**
  * @brief Draws a dashed (tick-marked) line in world space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param start The start point in world space.
  * @param end The end point in world space.
@@ -391,7 +433,9 @@ extern "C" PLUGIN_API void DebugCross3DOriented(const plg::vec3& origin, const p
  */
 extern "C" PLUGIN_API void DebugDrawTickMarkedLine(const plg::vec3& start, const plg::vec3& end, float tickDist,
 	int r, int g, int b, int a, int tickCount, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.DrawTickMarkedLine(std::bit_cast<Vector>(start),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->DrawTickMarkedLine(std::bit_cast<Vector>(start),
 		std::bit_cast<Vector>(end),
 		tickDist, r, g, b, a, tickCount, zTest, duration);
 }
@@ -404,9 +448,10 @@ extern "C" PLUGIN_API void DebugDrawTickMarkedLine(const plg::vec3& start, const
  * @param duration Duration (in seconds) to display.
  */
 extern "C" PLUGIN_API void DebugEntityAttachments(int entityHandle, float size, float duration) {
-	auto* entity = helpers::GetEntity(entityHandle);
-	if (!entity) return;
-	CDebugOverlayScriptHelper{}.EntityAttachments(entity, size, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	if (!helpers::GetEntity(entityHandle)) return;
+	overlay->EntityAttachments(entityHandle, size, duration);
 }
 
 /**
@@ -418,7 +463,9 @@ extern "C" PLUGIN_API void DebugEntityAttachments(int entityHandle, float size, 
  * @param duration Duration (in seconds) to display.
  */
 extern "C" PLUGIN_API void DebugEntityAxis(int entityHandle, float scale, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.EntityAxis(entity, scale, zTest, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->EntityAxis(entityHandle, scale, zTest, duration);
 }
 
 /**
@@ -433,17 +480,23 @@ extern "C" PLUGIN_API void DebugEntityAxis(int entityHandle, float scale, bool z
  * @param duration Duration (in seconds) to display.
  */
 extern "C" PLUGIN_API void DebugEntityBounds(int entityHandle, int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.EntityBounds(entity, r, g, b, a, zTest, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->EntityBounds(entityHandle, r, g, b, a, zTest, duration);
 }
 
 /**
  * @brief Draws the skeleton of a model for a given entity.
  *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
+ *
  * @param entityHandle Entity handle.
  * @param duration Duration (in seconds) to display.
  */
 extern "C" PLUGIN_API void DebugEntitySkeleton(int entityHandle, float duration) {
-	CDebugOverlayScriptHelper{}.EntitySkeleton(entity, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->EntitySkeleton(entityHandle, duration);
 }
 
 /**
@@ -460,11 +513,15 @@ extern "C" PLUGIN_API void DebugEntitySkeleton(int entityHandle, float duration)
  */
 extern "C" PLUGIN_API void DebugEntityText(int entityHandle, int textOffset, const plg::string& text,
 	int r, int g, int b, int a, float duration) {
-	CDebugOverlayScriptHelper{}.EntityText(entity, textOffset, text, r, g, b, a, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->EntityText(entityHandle, textOffset, text.c_str(), r, g, b, a, duration);
 }
 
 /**
  * @brief Draws a filled 2D rectangle in screen space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param min The top-left corner in pixels.
  * @param max The bottom-right corner in pixels.
@@ -476,7 +533,9 @@ extern "C" PLUGIN_API void DebugEntityText(int entityHandle, int textOffset, con
  */
 extern "C" PLUGIN_API void DebugFilledRect2D(const plg::vec2& min, const plg::vec2& max,
 	int r, int g, int b, int a, float duration) {
-	CDebugOverlayScriptHelper{}.FilledRect2D(std::bit_cast<Vector2D>(min),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->FilledRect2D(std::bit_cast<Vector2D>(min),
 		std::bit_cast<Vector2D>(max),
 		r, g, b, a, duration);
 }
@@ -496,7 +555,9 @@ extern "C" PLUGIN_API void DebugFilledRect2D(const plg::vec2& min, const plg::ve
  */
 extern "C" PLUGIN_API void DebugHorzArrow(const plg::vec3& start, const plg::vec3& end, float width,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.HorzArrow(std::bit_cast<Vector>(start),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->HorzArrow(std::bit_cast<Vector>(start),
 		std::bit_cast<Vector>(end),
 		width, r, g, b, a, zTest, duration);
 }
@@ -515,13 +576,17 @@ extern "C" PLUGIN_API void DebugHorzArrow(const plg::vec3& start, const plg::vec
  */
 extern "C" PLUGIN_API void DebugLine(const plg::vec3& start, const plg::vec3& end,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Line(std::bit_cast<Vector>(start),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Line(std::bit_cast<Vector>(start),
 		std::bit_cast<Vector>(end),
 		r, g, b, a, zTest, duration);
 }
 
 /**
  * @brief Draws a line between two points in screen space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param start The start position in pixels.
  * @param end The end position in pixels.
@@ -533,7 +598,9 @@ extern "C" PLUGIN_API void DebugLine(const plg::vec3& start, const plg::vec3& en
  */
 extern "C" PLUGIN_API void DebugLine2D(const plg::vec2& start, const plg::vec2& end,
 	int r, int g, int b, int a, float duration) {
-	CDebugOverlayScriptHelper{}.Line2D(std::bit_cast<Vector2D>(start),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Line2D(std::bit_cast<Vector2D>(start),
 		std::bit_cast<Vector2D>(end),
 		r, g, b, a, duration);
 }
@@ -542,38 +609,48 @@ extern "C" PLUGIN_API void DebugLine2D(const plg::vec2& start, const plg::vec2& 
  * @brief Pops the current debug overlay scope, ending a grouped overlay batch.
  */
 extern "C" PLUGIN_API void DebugPopDebugOverlayScope() {
-	CDebugOverlayScriptHelper{}.PopDebugOverlayScope();
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->PopDebugOverlayScope();
 }
 
 /**
  * @brief Pushes a new debug overlay scope and clears all overlays with this identifier.
  *
- * @param id Overlay identifier token.
+ * @param name Overlay scope name.
  */
-extern "C" PLUGIN_API void DebugPushAndClearDebugOverlayScope(utlstringtoken id) {
-	CDebugOverlayScriptHelper{}.PushAndClearDebugOverlayScope(id);
+extern "C" PLUGIN_API void DebugPushAndClearDebugOverlayScope(const plg::string& name) {
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->PushAndClearDebugOverlayScope(CUtlStringToken(std::string_view(name)));
 }
 
 /**
  * @brief Pushes a new debug overlay scope without clearing.
  *
- * @param id Overlay identifier token.
+ * @param name Overlay scope name.
  */
-extern "C" PLUGIN_API void DebugPushDebugOverlayScope(utlstringtoken id) {
-	CDebugOverlayScriptHelper{}.PushDebugOverlayScope(id);
+extern "C" PLUGIN_API void DebugPushDebugOverlayScope(const plg::string& name) {
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->PushDebugOverlayScope(CUtlStringToken(std::string_view(name)));
 }
 
 /**
  * @brief Removes all debug overlays marked with a specific identifier.
  *
- * @param id Overlay identifier token.
+ * @param name Overlay scope name.
  */
-extern "C" PLUGIN_API void DebugRemoveAllInScope(utlstringtoken id) {
-	CDebugOverlayScriptHelper{}.RemoveAllInScope(id);
+extern "C" PLUGIN_API void DebugRemoveAllInScope(const plg::string& name) {
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->RemoveAllInScope(CUtlStringToken(std::string_view(name)));
 }
 
 /**
  * @brief Draws a solid cone in world space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param origin Base position of the cone in world space.
  * @param direction Direction vector of the cone in world space.
@@ -588,7 +665,9 @@ extern "C" PLUGIN_API void DebugRemoveAllInScope(utlstringtoken id) {
  */
 extern "C" PLUGIN_API void DebugSolidCone(const plg::vec3& origin, const plg::vec3& direction, float radius, float height,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.SolidCone(std::bit_cast<Vector>(origin),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->SolidCone(std::bit_cast<Vector>(origin),
 		std::bit_cast<Vector>(direction),
 		radius, height, r, g, b, a, zTest, duration);
 }
@@ -607,7 +686,9 @@ extern "C" PLUGIN_API void DebugSolidCone(const plg::vec3& origin, const plg::ve
  */
 extern "C" PLUGIN_API void DebugSphere(const plg::vec3& center, float radius,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Sphere(std::bit_cast<Vector>(center),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Sphere(std::bit_cast<Vector>(center),
 		radius, r, g, b, a, zTest, duration);
 }
 
@@ -626,13 +707,15 @@ extern "C" PLUGIN_API void DebugSphere(const plg::vec3& center, float radius,
  * @param duration Duration (in seconds) to display the swept box.
  */
 extern "C" PLUGIN_API void DebugSweptBox(const plg::vec3& start, const plg::vec3& end,
-	const plg::vec3& mins, const plg::vec3& maxs, const plg::quat& orientation,
+	const plg::vec3& mins, const plg::vec3& maxs, const plg::vec4& orientation,
 	int r, int g, int b, int a, float duration) {
-	CDebugOverlayScriptHelper{}.SweptBox(std::bit_cast<Vector>(start),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->SweptBox(std::bit_cast<Vector>(start),
 		std::bit_cast<Vector>(end),
 		std::bit_cast<Vector>(mins),
 		std::bit_cast<Vector>(maxs),
-		std::bit_cast<Quaternion>(orientation),
+		AlignedQuaternion{std::bit_cast<Quaternion>(orientation)}.value,
 		r, g, b, a, duration);
 }
 
@@ -651,8 +734,10 @@ extern "C" PLUGIN_API void DebugSweptBox(const plg::vec3& start, const plg::vec3
  */
 extern "C" PLUGIN_API void DebugText(const plg::vec3& origin, int lineOffset, const plg::string& text,
 	float scale, int r, int g, int b, int a, float duration) {
-	CDebugOverlayScriptHelper{}.Text(std::bit_cast<Vector>(origin),
-		lineOffset, text, scale, r, g, b, a, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Text(std::bit_cast<Vector>(origin),
+		lineOffset, text.c_str(), scale, r, g, b, a, duration);
 }
 
 /**
@@ -671,7 +756,9 @@ extern "C" PLUGIN_API void DebugText(const plg::vec3& origin, int lineOffset, co
  */
 extern "C" PLUGIN_API void DebugTexture(const plg::string& textureName, const plg::vec2& min, const plg::vec2& max,
 	int r, int g, int b, int a, const plg::vec2& uvMin, const plg::vec2& uvMax, float duration) {
-	CDebugOverlayScriptHelper{}.Texture(textureName,
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Texture(textureName.c_str(),
 		std::bit_cast<Vector2D>(min),
 		std::bit_cast<Vector2D>(max),
 		r, g, b, a,
@@ -682,6 +769,8 @@ extern "C" PLUGIN_API void DebugTexture(const plg::string& textureName, const pl
 
 /**
  * @brief Draws a filled triangle in world space.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param v1 First vertex.
  * @param v2 Second vertex.
@@ -695,7 +784,9 @@ extern "C" PLUGIN_API void DebugTexture(const plg::string& textureName, const pl
  */
 extern "C" PLUGIN_API void DebugTriangle(const plg::vec3& v1, const plg::vec3& v2, const plg::vec3& v3,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.Triangle(std::bit_cast<Vector>(v1),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->Triangle(std::bit_cast<Vector>(v1),
 		std::bit_cast<Vector>(v2),
 		std::bit_cast<Vector>(v3),
 		r, g, b, a, zTest, duration);
@@ -703,6 +794,8 @@ extern "C" PLUGIN_API void DebugTriangle(const plg::vec3& v1, const plg::vec3& v
 
 /**
  * @brief Draws 3D text in world space with orientation.
+ *
+ * Not displayed on clients of a dedicated server: the server does not send this primitive.
  *
  * @param origin Origin position in world space.
  * @param orientation Orientation of the text.
@@ -714,11 +807,13 @@ extern "C" PLUGIN_API void DebugTriangle(const plg::vec3& v1, const plg::vec3& v
  * @param zTest Whether to perform depth testing.
  * @param duration Duration (in seconds) to display the text.
  */
-extern "C" PLUGIN_API void DebugVectorText3D(const plg::vec3& origin, const plg::quat& orientation, const plg::string& text,
+extern "C" PLUGIN_API void DebugVectorText3D(const plg::vec3& origin, const plg::vec4& orientation, const plg::string& text,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.VectorText3D(std::bit_cast<Vector>(origin),
-		std::bit_cast<Quaternion>(orientation),
-		text, r, g, b, a, zTest, duration);
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->VectorText3D(std::bit_cast<Vector>(origin),
+		AlignedQuaternion{std::bit_cast<Quaternion>(orientation)}.value,
+		text.c_str(), r, g, b, a, zTest, duration);
 }
 
 /**
@@ -736,7 +831,9 @@ extern "C" PLUGIN_API void DebugVectorText3D(const plg::vec3& origin, const plg:
  */
 extern "C" PLUGIN_API void DebugVertArrow(const plg::vec3& start, const plg::vec3& end, float width,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.VertArrow(std::bit_cast<Vector>(start),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->VertArrow(std::bit_cast<Vector>(start),
 		std::bit_cast<Vector>(end),
 		width, r, g, b, a, zTest, duration);
 }
@@ -757,10 +854,10 @@ extern "C" PLUGIN_API void DebugVertArrow(const plg::vec3& start, const plg::vec
  */
 extern "C" PLUGIN_API void DebugYawArrow(const plg::vec3& origin, float yaw, float length, float width,
 	int r, int g, int b, int a, bool zTest, float duration) {
-	CDebugOverlayScriptHelper{}.YawArrow(std::bit_cast<Vector>(origin),
+	auto* overlay = GetDebugOverlay();
+	if (!overlay) return;
+	overlay->YawArrow(std::bit_cast<Vector>(origin),
 		yaw, length, width, r, g, b, a, zTest, duration);
 }
-
-#endif
 
 PLUGIFY_WARN_POP()

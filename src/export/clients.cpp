@@ -343,70 +343,6 @@ extern "C" PLUGIN_API float GetClientLatency(int playerSlot) {
 }
 
 /**
- * @brief Returns the client's access flags.
- *
- * @param playerSlot The index of the player's slot.
- * @return uint64 Access flags as a bitmask.
- */
-extern "C" PLUGIN_API uint64 GetUserFlagBits(int playerSlot) {
-	auto player = g_PlayerManager.ToPlayer(CPlayerSlot(playerSlot));
-	if (player == nullptr) {
-		return false;
-	}
-
-	return 0;//player->GetAdminFlags();
-}
-
-/**
- * @brief Sets the access flags on a client using a bitmask.
- *
- * @param playerSlot The index of the player's slot.
- * @param flags Bitmask representing the flags to be set.
- */
-extern "C" PLUGIN_API void SetUserFlagBits(int playerSlot, uint64 flags) {
-	auto player = g_PlayerManager.ToPlayer(CPlayerSlot(playerSlot));
-	if (player == nullptr) {
-		return;
-	}
-
-	//player->SetAdminFlags(flags);
-}
-
-/**
- * @brief Adds access flags to a client.
- *
- * If the client is not an admin, they will be given a temporary AdminId.
- *
- * @param playerSlot The index of the player's slot.
- * @param flags Bitmask representing the flags to be added.
- */
-extern "C" PLUGIN_API void AddUserFlags(int playerSlot, uint64 flags) {
-	auto player = g_PlayerManager.ToPlayer(CPlayerSlot(playerSlot));
-	if (player == nullptr) {
-		return;
-	}
-
-	//player->SetAdminFlags(player->GetAdminFlags() | flags);
-}
-
-/**
- * @brief Removes access flags from a client.
- *
- * If the client is not an admin, this has no effect.
- *
- * @param playerSlot The index of the player's slot.
- * @param flags Bitmask representing the flags to be removed.
- */
-extern "C" PLUGIN_API void RemoveUserFlags(int playerSlot, uint64 flags) {
-	auto player = g_PlayerManager.ToPlayer(CPlayerSlot(playerSlot));
-	if (player == nullptr) {
-		return;
-	}
-
-	//player->SetAdminFlags(player->GetAdminFlags() & ~flags);
-}
-
-/**
  * @brief Checks if a certain player has been authenticated.
  *
  * @param playerSlot The index of the player's slot.
@@ -1477,7 +1413,8 @@ extern "C" PLUGIN_API void AcceptClientInput(int playerSlot, const plg::string& 
 extern "C" PLUGIN_API void ConnectClientOutput(int playerSlot, const plg::string& output, const plg::string& functionName) {
 	auto [controller, pawn] = helpers::GetController2(playerSlot);
 	if (!pawn) return;
-	reinterpret_cast<CEntityInstance2*>(pawn)->ConnectOutput(output.c_str(), functionName.c_str());
+	// Called outside a script, the game's ConnectOutput leaves the connection without a target
+	reinterpret_cast<CEntityInstance2*>(pawn)->RedirectOutput(output.c_str(), functionName.c_str(), pawn->GetScriptInstance());
 }
 
 /**
@@ -1492,7 +1429,7 @@ extern "C" PLUGIN_API void ConnectClientOutput(int playerSlot, const plg::string
 extern "C" PLUGIN_API void DisconnectClientOutput(int playerSlot, const plg::string& output, const plg::string& functionName) {
 	auto [controller, pawn] = helpers::GetController2(playerSlot);
 	if (!pawn) return;
-	reinterpret_cast<CEntityInstance2*>(pawn)->DisconnectOutput(output.c_str(), functionName.c_str());
+	reinterpret_cast<CEntityInstance2*>(pawn)->DisconnectRedirectedOutput(output.c_str(), functionName.c_str(), pawn->GetScriptInstance());
 }
 
 /**
@@ -1578,7 +1515,7 @@ extern "C" PLUGIN_API void FollowClientMerge(int playerSlot, int attachmentHandl
 	if (!pawn) return;
 	auto* attach = helpers::GetEntity(attachmentHandle);
 	if (!attach) return;
-	pawn->FollowEntity(attach->GetScriptInstance(), boneOrAttachName.c_str());
+	pawn->FollowEntityMerge(attach->GetScriptInstance(), boneOrAttachName.c_str());
 }
 
 /**
@@ -1602,10 +1539,7 @@ extern "C" PLUGIN_API int TakeClientDamage(int playerSlot, int inflictorSlot, in
 	if (!inflictor) return {};
 	auto [controller3, attacker] = helpers::GetController2(attackerSlot);
 	if (!attacker) return {};
-	HSCRIPT takeDamageInfo = CTakeDamage{}.CreateDamageInfo(inflictor->GetScriptInstance(), attacker->GetScriptInstance(), std::bit_cast<Vector>(force), std::bit_cast<Vector>(hitPos), damage, damageTypes);
-	int applied = pawn->TakeDamage(takeDamageInfo);
-	CTakeDamage{}.DestroyDamageInfo(takeDamageInfo);
-	return applied;
+	return helpers::TakeDamage(pawn, inflictor, attacker, std::bit_cast<Vector>(force), std::bit_cast<Vector>(hitPos), damage, damageTypes);
 }
 
 /////

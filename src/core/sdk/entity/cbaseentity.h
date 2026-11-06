@@ -148,7 +148,7 @@ public:
 	SCHEMA_FIELD(CNetworkTransmitComponent, m_NetworkTransmitComponent)
 	SCHEMA_FIELD(int, m_iHealth)
 	SCHEMA_FIELD(int, m_iMaxHealth)
-	SCHEMA_FIELD(uint8_t, m_iTeamNum)
+	SCHEMA_FIELD(uint8, m_iTeamNum)
 	SCHEMA_FIELD(bool, m_bLagCompensate)
 	SCHEMA_FIELD(Vector, m_vecAbsVelocity)
 	SCHEMA_FIELD(Vector, m_vecBaseVelocity)
@@ -200,12 +200,12 @@ public:
     VSCRIPT_MEMBER_FUNCTION(GatherCriteria, void, handle)
     VSCRIPT_MEMBER_FUNCTION(GetAbsOrigin, vector)
     VSCRIPT_MEMBER_FUNCTION(GetAbsScale, float)
-    VSCRIPT_MEMBER_FUNCTION(GetAngles, QAngle)
-    VSCRIPT_MEMBER_FUNCTION(GetAnglesAsVector, Vector)
-    VSCRIPT_MEMBER_FUNCTION(GetAngularVelocity, Vector)
+    VSCRIPT_MEMBER_FUNCTION(GetAngles, const QAngle&)
+    VSCRIPT_MEMBER_FUNCTION(GetAnglesAsVector, const Vector&)
+    VSCRIPT_MEMBER_FUNCTION(GetAngularVelocity, const Vector&)
     VSCRIPT_MEMBER_FUNCTION(GetBaseVelocity, Vector)
-    VSCRIPT_MEMBER_FUNCTION(GetBoundingMaxs, Vector)
-    VSCRIPT_MEMBER_FUNCTION(GetBoundingMins, Vector)
+    VSCRIPT_MEMBER_FUNCTION(GetBoundingMaxs, const Vector&)
+    VSCRIPT_MEMBER_FUNCTION(GetBoundingMins, const Vector&)
     //VSCRIPT_MEMBER_FUNCTION(GetBounds, table)
     VSCRIPT_MEMBER_FUNCTION(GetCenter, Vector)
     VSCRIPT_MEMBER_FUNCTION(GetChildren, handle)
@@ -213,9 +213,9 @@ public:
     VSCRIPT_MEMBER_FUNCTION(GetForwardVector, Vector)
     VSCRIPT_MEMBER_FUNCTION(GetHealth, int)
     VSCRIPT_MEMBER_FUNCTION(GetLeftVector, Vector)
-    VSCRIPT_MEMBER_FUNCTION(GetLocalAngles, QAngle)
+    VSCRIPT_MEMBER_FUNCTION(GetLocalAngles, const QAngle&)
     VSCRIPT_MEMBER_FUNCTION(GetLocalAngularVelocity, QAngle)
-    VSCRIPT_MEMBER_FUNCTION(GetLocalOrigin, Vector)
+    VSCRIPT_MEMBER_FUNCTION(GetLocalOrigin, const Vector&)
     VSCRIPT_MEMBER_FUNCTION(GetLocalScale, float)
     VSCRIPT_MEMBER_FUNCTION(GetLocalVelocity, Vector)
     VSCRIPT_MEMBER_FUNCTION(GetMass, float)
@@ -268,16 +268,12 @@ public:
     VSCRIPT_MEMBER_FUNCTION(SetVelocity, void, vector)
     VSCRIPT_MEMBER_FUNCTION(StopSound, void, string)
     VSCRIPT_MEMBER_FUNCTION(TakeDamage, int, handle)
-    VSCRIPT_MEMBER_FUNCTION(TransformPointEntityToWorld, Vector, vector)
-    VSCRIPT_MEMBER_FUNCTION(TransformPointWorldToEntity, Vector, vector)
+    VSCRIPT_MEMBER_FUNCTION(TransformPointEntityToWorld, const Vector&, vector)
+    VSCRIPT_MEMBER_FUNCTION(TransformPointWorldToEntity, const Vector&, vector)
     VSCRIPT_MEMBER_FUNCTION(Trigger, void)
     VSCRIPT_MEMBER_FUNCTION(ValidatePrivateScriptScope, void)
 
 	int entindex() { return m_pEntity->m_EHandle.GetEntryIndex(); }
-
-	string GetName() {
-		return m_iGlobalname->String();
-	}
 
 	void SetCollisionGroup(StandardCollisionGroups_t collisionGroup) {
 		if (m_pCollision == nullptr)
@@ -409,7 +405,7 @@ public:
 	VSCRIPT_MEMBER_FUNCTION(FindByModel, handle, handle, string)
 	VSCRIPT_MEMBER_FUNCTION(FindByModelWithin, handle, handle, string, vector, float)
 	VSCRIPT_MEMBER_FUNCTION(FindByTarget, handle, handle, string)
-	VSCRIPT_MEMBER_FUNCTION(FindInSphere, handle, handle, string, vector, float)
+	VSCRIPT_MEMBER_FUNCTION(FindInSphere, handle, handle, vector, float)
 };
 
 class SpawnPoint : public CBaseEntity {

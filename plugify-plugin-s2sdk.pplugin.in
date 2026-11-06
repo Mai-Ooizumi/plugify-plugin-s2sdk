@@ -6235,6 +6235,1790 @@
       }
     },
     {
+      "name": "DebugAxis",
+      "group": "Debug",
+      "description": "Draws an axis at a specified world-space origin.",
+      "funcName": "DebugAxis",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "The origin of the axis in world space."
+        },
+        {
+          "name": "orientation",
+          "type": "vec4",
+          "ref": false,
+          "description": "The orientation as a quaternion."
+        },
+        {
+          "name": "scale",
+          "type": "float",
+          "ref": false,
+          "description": "The scale of the axis."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the axis."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugBox",
+      "group": "Debug",
+      "description": "Draws a world-space axis-aligned box.",
+      "funcName": "DebugBox",
+      "paramTypes": [
+        {
+          "name": "mins",
+          "type": "vec3",
+          "ref": false,
+          "description": "The minimum corner of the box in world space."
+        },
+        {
+          "name": "maxs",
+          "type": "vec3",
+          "ref": false,
+          "description": "The maximum corner of the box in world space."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the box."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugBoxAngles",
+      "group": "Debug",
+      "description": "Draws an oriented box in world space.",
+      "funcName": "DebugBoxAngles",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "The box origin in world space."
+        },
+        {
+          "name": "mins",
+          "type": "vec3",
+          "ref": false,
+          "description": "The local-space minimum corner."
+        },
+        {
+          "name": "maxs",
+          "type": "vec3",
+          "ref": false,
+          "description": "The local-space maximum corner."
+        },
+        {
+          "name": "orientation",
+          "type": "vec4",
+          "ref": false,
+          "description": "The box orientation as a quaternion."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the box."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugCapsule",
+      "group": "Debug",
+      "description": "Draws a capsule in world space.",
+      "funcName": "DebugCapsule",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "The capsule origin in world space."
+        },
+        {
+          "name": "orientation",
+          "type": "vec4",
+          "ref": false,
+          "description": "The capsule orientation as a quaternion."
+        },
+        {
+          "name": "radius",
+          "type": "float",
+          "ref": false,
+          "description": "The capsule radius."
+        },
+        {
+          "name": "halfHeight",
+          "type": "float",
+          "ref": false,
+          "description": "Half the capsule height."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the capsule."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugCircle",
+      "group": "Debug",
+      "description": "Draws a circle in world space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugCircle",
+      "paramTypes": [
+        {
+          "name": "center",
+          "type": "vec3",
+          "ref": false,
+          "description": "The center of the circle in world space."
+        },
+        {
+          "name": "orientation",
+          "type": "vec4",
+          "ref": false,
+          "description": "The orientation as a quaternion."
+        },
+        {
+          "name": "radius",
+          "type": "float",
+          "ref": false,
+          "description": "The circle radius."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the circle."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugCircleScreenOriented",
+      "group": "Debug",
+      "description": "Draws a screen-oriented circle in world space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugCircleScreenOriented",
+      "paramTypes": [
+        {
+          "name": "center",
+          "type": "vec3",
+          "ref": false,
+          "description": "The center of the circle in world space."
+        },
+        {
+          "name": "radius",
+          "type": "float",
+          "ref": false,
+          "description": "The radius of the circle."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the circle."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugCone",
+      "group": "Debug",
+      "description": "Draws a wireframe cone in world space.",
+      "funcName": "DebugCone",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "The base position of the cone in world space."
+        },
+        {
+          "name": "direction",
+          "type": "vec3",
+          "ref": false,
+          "description": "The direction vector of the cone in world space."
+        },
+        {
+          "name": "radius",
+          "type": "float",
+          "ref": false,
+          "description": "The cone base radius."
+        },
+        {
+          "name": "height",
+          "type": "float",
+          "ref": false,
+          "description": "The cone height."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the cone."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugCross",
+      "group": "Debug",
+      "description": "Draws a screen-aligned cross in world space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugCross",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "The center position of the cross in world space."
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "ref": false,
+          "description": "The size of the cross."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the cross."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugCross3D",
+      "group": "Debug",
+      "description": "Draws a world-aligned cross in world space.",
+      "funcName": "DebugCross3D",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "The center of the cross in world space."
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "ref": false,
+          "description": "The size of the cross."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the cross."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugCross3DOriented",
+      "group": "Debug",
+      "description": "Draws an oriented cross in world space.",
+      "funcName": "DebugCross3DOriented",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "The center position of the cross."
+        },
+        {
+          "name": "orientation",
+          "type": "vec4",
+          "ref": false,
+          "description": "The orientation of the cross as a quaternion."
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "ref": false,
+          "description": "The size of the cross."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the cross."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugDrawTickMarkedLine",
+      "group": "Debug",
+      "description": "Draws a dashed (tick-marked) line in world space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugDrawTickMarkedLine",
+      "paramTypes": [
+        {
+          "name": "start",
+          "type": "vec3",
+          "ref": false,
+          "description": "The start point in world space."
+        },
+        {
+          "name": "end",
+          "type": "vec3",
+          "ref": false,
+          "description": "The end point in world space."
+        },
+        {
+          "name": "tickDist",
+          "type": "float",
+          "ref": false,
+          "description": "Distance between tick marks."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "tickCount",
+          "type": "int32",
+          "ref": false,
+          "description": "tickCount"
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the line."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugEntityAttachments",
+      "group": "Debug",
+      "description": "Draws the attachments of an entity.",
+      "funcName": "DebugEntityAttachments",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "Entity handle."
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "ref": false,
+          "description": "Size of attachment markers."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugEntityAxis",
+      "group": "Debug",
+      "description": "Draws the local axis of an entity at its origin.",
+      "funcName": "DebugEntityAxis",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "Entity handle."
+        },
+        {
+          "name": "scale",
+          "type": "float",
+          "ref": false,
+          "description": "Axis size."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugEntityBounds",
+      "group": "Debug",
+      "description": "Draws an entity\u2019s world-space bounding box.",
+      "funcName": "DebugEntityBounds",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "Entity handle."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugEntitySkeleton",
+      "group": "Debug",
+      "description": "Draws the skeleton of a model for a given entity. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugEntitySkeleton",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "Entity handle."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugEntityText",
+      "group": "Debug",
+      "description": "Draws text attached to an entity.",
+      "funcName": "DebugEntityText",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "Entity handle."
+        },
+        {
+          "name": "textOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "Offset index for text position."
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "ref": false,
+          "description": "Text to display."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugFilledRect2D",
+      "group": "Debug",
+      "description": "Draws a filled 2D rectangle in screen space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugFilledRect2D",
+      "paramTypes": [
+        {
+          "name": "min",
+          "type": "vec2",
+          "ref": false,
+          "description": "The top-left corner in pixels."
+        },
+        {
+          "name": "max",
+          "type": "vec2",
+          "ref": false,
+          "description": "The bottom-right corner in pixels."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugHorzArrow",
+      "group": "Debug",
+      "description": "Draws a horizontal arrow between two points in world space.",
+      "funcName": "DebugHorzArrow",
+      "paramTypes": [
+        {
+          "name": "start",
+          "type": "vec3",
+          "ref": false,
+          "description": "The start point in world space."
+        },
+        {
+          "name": "end",
+          "type": "vec3",
+          "ref": false,
+          "description": "The end point in world space."
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "ref": false,
+          "description": "Arrow width."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugLine",
+      "group": "Debug",
+      "description": "Draws a 3D line between two world-space points.",
+      "funcName": "DebugLine",
+      "paramTypes": [
+        {
+          "name": "start",
+          "type": "vec3",
+          "ref": false,
+          "description": "The start point."
+        },
+        {
+          "name": "end",
+          "type": "vec3",
+          "ref": false,
+          "description": "The end point."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugLine2D",
+      "group": "Debug",
+      "description": "Draws a line between two points in screen space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugLine2D",
+      "paramTypes": [
+        {
+          "name": "start",
+          "type": "vec2",
+          "ref": false,
+          "description": "The start position in pixels."
+        },
+        {
+          "name": "end",
+          "type": "vec2",
+          "ref": false,
+          "description": "The end position in pixels."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugPopDebugOverlayScope",
+      "group": "Debug",
+      "description": "Pops the current debug overlay scope, ending a grouped overlay batch.",
+      "funcName": "DebugPopDebugOverlayScope",
+      "paramTypes": [],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugPushAndClearDebugOverlayScope",
+      "group": "Debug",
+      "description": "Pushes a new debug overlay scope and clears all overlays with this identifier.",
+      "funcName": "DebugPushAndClearDebugOverlayScope",
+      "paramTypes": [
+        {
+          "name": "name",
+          "type": "string",
+          "ref": false,
+          "description": "Overlay scope name."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugPushDebugOverlayScope",
+      "group": "Debug",
+      "description": "Pushes a new debug overlay scope without clearing.",
+      "funcName": "DebugPushDebugOverlayScope",
+      "paramTypes": [
+        {
+          "name": "name",
+          "type": "string",
+          "ref": false,
+          "description": "Overlay scope name."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugRemoveAllInScope",
+      "group": "Debug",
+      "description": "Removes all debug overlays marked with a specific identifier.",
+      "funcName": "DebugRemoveAllInScope",
+      "paramTypes": [
+        {
+          "name": "name",
+          "type": "string",
+          "ref": false,
+          "description": "Overlay scope name."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugSolidCone",
+      "group": "Debug",
+      "description": "Draws a solid cone in world space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugSolidCone",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "Base position of the cone in world space."
+        },
+        {
+          "name": "direction",
+          "type": "vec3",
+          "ref": false,
+          "description": "Direction vector of the cone in world space."
+        },
+        {
+          "name": "radius",
+          "type": "float",
+          "ref": false,
+          "description": "Base radius of the cone."
+        },
+        {
+          "name": "height",
+          "type": "float",
+          "ref": false,
+          "description": "Cone height."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the cone."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugSphere",
+      "group": "Debug",
+      "description": "Draws a wireframe sphere in world space.",
+      "funcName": "DebugSphere",
+      "paramTypes": [
+        {
+          "name": "center",
+          "type": "vec3",
+          "ref": false,
+          "description": "Center of the sphere in world space."
+        },
+        {
+          "name": "radius",
+          "type": "float",
+          "ref": false,
+          "description": "Sphere radius."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the sphere."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugSweptBox",
+      "group": "Debug",
+      "description": "Draws a swept box between two points in world space.",
+      "funcName": "DebugSweptBox",
+      "paramTypes": [
+        {
+          "name": "start",
+          "type": "vec3",
+          "ref": false,
+          "description": "Start point in world space."
+        },
+        {
+          "name": "end",
+          "type": "vec3",
+          "ref": false,
+          "description": "End point in world space."
+        },
+        {
+          "name": "mins",
+          "type": "vec3",
+          "ref": false,
+          "description": "Local-space minimum bounds."
+        },
+        {
+          "name": "maxs",
+          "type": "vec3",
+          "ref": false,
+          "description": "Local-space maximum bounds."
+        },
+        {
+          "name": "orientation",
+          "type": "vec4",
+          "ref": false,
+          "description": "Orientation of the box."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the swept box."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugText",
+      "group": "Debug",
+      "description": "Draws 2D text in world space.",
+      "funcName": "DebugText",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "Origin of the text in world space."
+        },
+        {
+          "name": "lineOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "Line offset index."
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "ref": false,
+          "description": "Text to display."
+        },
+        {
+          "name": "scale",
+          "type": "float",
+          "ref": false,
+          "description": "Text scale factor."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugTexture",
+      "group": "Debug",
+      "description": "Draws a textured rectangle on screen.",
+      "funcName": "DebugTexture",
+      "paramTypes": [
+        {
+          "name": "textureName",
+          "type": "string",
+          "ref": false,
+          "description": "Name of the texture to draw."
+        },
+        {
+          "name": "min",
+          "type": "vec2",
+          "ref": false,
+          "description": "Top-left screen-space coordinate in pixels."
+        },
+        {
+          "name": "max",
+          "type": "vec2",
+          "ref": false,
+          "description": "Bottom-right screen-space coordinate in pixels."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "uvMin",
+          "type": "vec2",
+          "ref": false,
+          "description": "Minimum UV coordinate."
+        },
+        {
+          "name": "uvMax",
+          "type": "vec2",
+          "ref": false,
+          "description": "Maximum UV coordinate."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the texture."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugTriangle",
+      "group": "Debug",
+      "description": "Draws a filled triangle in world space. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugTriangle",
+      "paramTypes": [
+        {
+          "name": "v1",
+          "type": "vec3",
+          "ref": false,
+          "description": "First vertex."
+        },
+        {
+          "name": "v2",
+          "type": "vec3",
+          "ref": false,
+          "description": "Second vertex."
+        },
+        {
+          "name": "v3",
+          "type": "vec3",
+          "ref": false,
+          "description": "Third vertex."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the triangle."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugVectorText3D",
+      "group": "Debug",
+      "description": "Draws 3D text in world space with orientation. Not displayed on clients of a dedicated server: the server does not send this primitive.",
+      "funcName": "DebugVectorText3D",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "Origin position in world space."
+        },
+        {
+          "name": "orientation",
+          "type": "vec4",
+          "ref": false,
+          "description": "Orientation of the text."
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "ref": false,
+          "description": "Text to display."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the text."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugVertArrow",
+      "group": "Debug",
+      "description": "Draws a vertical arrow between two points in world space.",
+      "funcName": "DebugVertArrow",
+      "paramTypes": [
+        {
+          "name": "start",
+          "type": "vec3",
+          "ref": false,
+          "description": "Start point in world space."
+        },
+        {
+          "name": "end",
+          "type": "vec3",
+          "ref": false,
+          "description": "End point in world space."
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "ref": false,
+          "description": "Arrow width."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "DebugYawArrow",
+      "group": "Debug",
+      "description": "Draws a yaw-based directional arrow in world space.",
+      "funcName": "DebugYawArrow",
+      "paramTypes": [
+        {
+          "name": "origin",
+          "type": "vec3",
+          "ref": false,
+          "description": "Origin position in world space."
+        },
+        {
+          "name": "yaw",
+          "type": "float",
+          "ref": false,
+          "description": "Yaw angle in degrees."
+        },
+        {
+          "name": "length",
+          "type": "float",
+          "ref": false,
+          "description": "Length of the arrow."
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "ref": false,
+          "description": "Arrow width."
+        },
+        {
+          "name": "r",
+          "type": "int32",
+          "ref": false,
+          "description": "Red color value."
+        },
+        {
+          "name": "g",
+          "type": "int32",
+          "ref": false,
+          "description": "Green color value."
+        },
+        {
+          "name": "b",
+          "type": "int32",
+          "ref": false,
+          "description": "Blue color value."
+        },
+        {
+          "name": "a",
+          "type": "int32",
+          "ref": false,
+          "description": "Alpha (transparency) value."
+        },
+        {
+          "name": "zTest",
+          "type": "bool",
+          "ref": false,
+          "description": "Whether to perform depth testing."
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "ref": false,
+          "description": "Duration (in seconds) to display the arrow."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "AnglesDiff",
       "group": "Math",
       "description": "Returns angular difference in degrees",
@@ -8379,93 +10163,6 @@
       }
     },
     {
-      "name": "GetUserFlagBits",
-      "group": "Clients",
-      "description": "Returns the client's access flags.",
-      "funcName": "GetUserFlagBits",
-      "paramTypes": [
-        {
-          "name": "playerSlot",
-          "type": "int32",
-          "ref": false,
-          "description": "The index of the player's slot."
-        }
-      ],
-      "retType": {
-        "type": "uint64",
-        "description": "uint64 Access flags as a bitmask."
-      }
-    },
-    {
-      "name": "SetUserFlagBits",
-      "group": "Clients",
-      "description": "Sets the access flags on a client using a bitmask.",
-      "funcName": "SetUserFlagBits",
-      "paramTypes": [
-        {
-          "name": "playerSlot",
-          "type": "int32",
-          "ref": false,
-          "description": "The index of the player's slot."
-        },
-        {
-          "name": "flags",
-          "type": "uint64",
-          "ref": false,
-          "description": "Bitmask representing the flags to be set."
-        }
-      ],
-      "retType": {
-        "type": "void"
-      }
-    },
-    {
-      "name": "AddUserFlags",
-      "group": "Clients",
-      "description": "Adds access flags to a client.",
-      "funcName": "AddUserFlags",
-      "paramTypes": [
-        {
-          "name": "playerSlot",
-          "type": "int32",
-          "ref": false,
-          "description": "The index of the player's slot."
-        },
-        {
-          "name": "flags",
-          "type": "uint64",
-          "ref": false,
-          "description": "Bitmask representing the flags to be added."
-        }
-      ],
-      "retType": {
-        "type": "void"
-      }
-    },
-    {
-      "name": "RemoveUserFlags",
-      "group": "Clients",
-      "description": "Removes access flags from a client.",
-      "funcName": "RemoveUserFlags",
-      "paramTypes": [
-        {
-          "name": "playerSlot",
-          "type": "int32",
-          "ref": false,
-          "description": "The index of the player's slot."
-        },
-        {
-          "name": "flags",
-          "type": "uint64",
-          "ref": false,
-          "description": "Bitmask representing the flags to be removed."
-        }
-      ],
-      "retType": {
-        "type": "void"
-      }
-    },
-    {
       "name": "IsClientAuthorized",
       "group": "Clients",
       "description": "Checks if a certain player has been authenticated.",
@@ -9940,14 +11637,14 @@
     {
       "name": "ConnectClientOutput",
       "group": "Clients",
-      "description": "Connects a script function to an player output.",
+      "description": "Connects a script function to an output of the player pawn. When the output fires, the game calls InputCallScriptFunction(args) in the private script scope of the pawn with functionName in args.value. A function named functionName is not called directly.",
       "funcName": "ConnectClientOutput",
       "paramTypes": [
         {
           "name": "playerSlot",
           "type": "int32",
           "ref": false,
-          "description": "The handle of the player."
+          "description": "The slot of the player."
         },
         {
           "name": "output",
@@ -9959,7 +11656,7 @@
           "name": "functionName",
           "type": "string",
           "ref": false,
-          "description": "The name of the script function to call."
+          "description": "The value passed to InputCallScriptFunction in args.value."
         }
       ],
       "retType": {
@@ -9969,14 +11666,14 @@
     {
       "name": "DisconnectClientOutput",
       "group": "Clients",
-      "description": "Disconnects a script function from an player output.",
+      "description": "Disconnects a script function from an output of the player pawn.",
       "funcName": "DisconnectClientOutput",
       "paramTypes": [
         {
           "name": "playerSlot",
           "type": "int32",
           "ref": false,
-          "description": "The handle of the player."
+          "description": "The slot of the player."
         },
         {
           "name": "output",
@@ -12572,7 +14269,8 @@
         }
       ],
       "retType": {
-        "type": "void"
+        "type": "bool",
+        "description": "True if the callback was registered, false if the convar is invalid or the callback is already registered."
       }
     },
     {
@@ -12596,7 +14294,8 @@
         }
       ],
       "retType": {
-        "type": "void"
+        "type": "bool",
+        "description": "True if the callback was removed, false if the convar is invalid or the callback was not registered."
       }
     },
     {
@@ -16503,7 +18202,7 @@
     {
       "name": "ConnectEntityOutput",
       "group": "Entities",
-      "description": "Connects a script function to an entity output.",
+      "description": "Connects a script function to an entity output. When the output fires, the game calls InputCallScriptFunction(args) in the private script scope of the entity with functionName in args.value. A function named functionName is not called directly.",
       "funcName": "ConnectEntityOutput",
       "paramTypes": [
         {
@@ -16522,7 +18221,7 @@
           "name": "functionName",
           "type": "string",
           "ref": false,
-          "description": "The name of the script function to call."
+          "description": "The value passed to InputCallScriptFunction in args.value."
         }
       ],
       "retType": {
@@ -23720,6 +25419,30 @@
       }
     },
     {
+      "name": "OnClientConnect_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientConnect_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientConnectCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientConnect_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnClientConnect_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -23741,6 +25464,7 @@
       "name": "OnClientConnected_Register",
       "group": "Listeners",
       "description": "Register callback to event.",
+      "deprecated": "Use OnClientSessionStart_Register instead. Will be removed soon",
       "funcName": "OnClientConnected_Register",
       "paramTypes": [
         {
@@ -23756,9 +25480,35 @@
       }
     },
     {
+      "name": "OnClientConnected_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "deprecated": "Use OnClientSessionStart_Register2 instead. Will be removed soon",
+      "funcName": "OnClientConnected_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientConnectedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientConnected_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnClientConnected_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
+      "deprecated": "Use OnClientSessionStart_Unregister instead. Will be removed soon",
       "funcName": "OnClientConnected_Unregister",
       "paramTypes": [
         {
@@ -23767,6 +25517,66 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnClientConnectedCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSessionStart_Register",
+      "group": "Listeners",
+      "description": "Register callback to event.",
+      "funcName": "OnClientSessionStart_Register",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSessionStartCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSessionStart_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientSessionStart_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSessionStartCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientSessionStart_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSessionStart_Unregister",
+      "group": "Listeners",
+      "description": "Unregister callback to event.",
+      "funcName": "OnClientSessionStart_Unregister",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSessionStartCallback"
         }
       ],
       "retType": {
@@ -23785,6 +25595,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnClientPutInServerCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientPutInServer_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientPutInServer_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientPutInServerCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientPutInServer_Register uses 0."
         }
       ],
       "retType": {
@@ -23828,6 +25662,30 @@
       }
     },
     {
+      "name": "OnClientDisconnect_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientDisconnect_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientDisconnectCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientDisconnect_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnClientDisconnect_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -23846,6 +25704,66 @@
       }
     },
     {
+      "name": "OnClientSessionEnd_Register",
+      "group": "Listeners",
+      "description": "Register callback to event.",
+      "funcName": "OnClientSessionEnd_Register",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSessionEndCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSessionEnd_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientSessionEnd_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSessionEndCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientSessionEnd_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSessionEnd_Unregister",
+      "group": "Listeners",
+      "description": "Unregister callback to event.",
+      "funcName": "OnClientSessionEnd_Unregister",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSessionEndCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnClientActive_Register",
       "group": "Listeners",
       "description": "Register callback to event.",
@@ -23857,6 +25775,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnClientActiveCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientActive_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientActive_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientActiveCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientActive_Register uses 0."
         }
       ],
       "retType": {
@@ -23900,6 +25842,30 @@
       }
     },
     {
+      "name": "OnClientSignonStateChanged_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientSignonStateChanged_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSignonStateChangedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientSignonStateChanged_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnClientSignonStateChanged_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -23929,6 +25895,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnClientFullyConnectCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientFullyConnect_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientFullyConnect_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientFullyConnectCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientFullyConnect_Register uses 0."
         }
       ],
       "retType": {
@@ -23972,6 +25962,30 @@
       }
     },
     {
+      "name": "OnClientSettingsChanged_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientSettingsChanged_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSettingsChangedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientSettingsChanged_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnClientSettingsChanged_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24001,6 +26015,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnClientAuthenticatedCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientAuthenticated_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnClientAuthenticated_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientAuthenticatedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnClientAuthenticated_Register uses 0."
         }
       ],
       "retType": {
@@ -24044,6 +26082,30 @@
       }
     },
     {
+      "name": "OnRoundTerminated_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnRoundTerminated_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnRoundTerminatedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnRoundTerminated_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnRoundTerminated_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24073,6 +26135,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnEntityCreatedCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnEntityCreated_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnEntityCreated_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnEntityCreatedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnEntityCreated_Register uses 0."
         }
       ],
       "retType": {
@@ -24116,6 +26202,30 @@
       }
     },
     {
+      "name": "OnEntitySpawned_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnEntitySpawned_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnEntitySpawnedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnEntitySpawned_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnEntitySpawned_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24145,6 +26255,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnEntityDeletedCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnEntityDeleted_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnEntityDeleted_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnEntityDeletedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnEntityDeleted_Register uses 0."
         }
       ],
       "retType": {
@@ -24188,6 +26322,30 @@
       }
     },
     {
+      "name": "OnEntityParentChanged_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnEntityParentChanged_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnEntityParentChangedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnEntityParentChanged_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnEntityParentChanged_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24217,6 +26375,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnServerCheckTransmitCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnServerCheckTransmit_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnServerCheckTransmit_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnServerCheckTransmitCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnServerCheckTransmit_Register uses 0."
         }
       ],
       "retType": {
@@ -24260,6 +26442,30 @@
       }
     },
     {
+      "name": "OnServerStartup_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnServerStartup_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnServerStartupCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnServerStartup_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnServerStartup_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24289,6 +26495,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnBuildGameSessionManifestCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnBuildGameSessionManifest_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnBuildGameSessionManifest_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnBuildGameSessionManifestCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnBuildGameSessionManifest_Register uses 0."
         }
       ],
       "retType": {
@@ -24332,6 +26562,30 @@
       }
     },
     {
+      "name": "OnServerActivate_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnServerActivate_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnServerActivateCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnServerActivate_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnServerActivate_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24361,6 +26615,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnServerSpawnCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnServerSpawn_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnServerSpawn_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnServerSpawnCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnServerSpawn_Register uses 0."
         }
       ],
       "retType": {
@@ -24404,6 +26682,30 @@
       }
     },
     {
+      "name": "OnServerStarted_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnServerStarted_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnServerStartedCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnServerStarted_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnServerStarted_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24433,6 +26735,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnMapStartCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnMapStart_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnMapStart_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnMapStartCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnMapStart_Register uses 0."
         }
       ],
       "retType": {
@@ -24476,6 +26802,30 @@
       }
     },
     {
+      "name": "OnMapEnd_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnMapEnd_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnMapEndCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnMapEnd_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnMapEnd_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24505,6 +26855,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnGameFrameCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnGameFrame_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnGameFrame_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnGameFrameCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnGameFrame_Register uses 0."
         }
       ],
       "retType": {
@@ -24548,6 +26922,30 @@
       }
     },
     {
+      "name": "OnUpdateWhenNotInGame_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnUpdateWhenNotInGame_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnUpdateWhenNotInGameCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnUpdateWhenNotInGame_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnUpdateWhenNotInGame_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24577,6 +26975,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnPreWorldUpdateCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnPreWorldUpdate_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnPreWorldUpdate_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnPreWorldUpdateCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnPreWorldUpdate_Register uses 0."
         }
       ],
       "retType": {
@@ -24620,6 +27042,30 @@
       }
     },
     {
+      "name": "OnSendNetMessage_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnSendNetMessage_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnSendNetMessageCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnSendNetMessage_Register uses 0."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnSendNetMessage_Unregister",
       "group": "Listeners",
       "description": "Unregister callback to event.",
@@ -24649,6 +27095,30 @@
           "ref": false,
           "description": "Function callback.",
           "prototype": "OnSerializeMessageCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnSerializeMessage_Register2",
+      "group": "Listeners",
+      "description": "Register callback to event with a priority.",
+      "funcName": "OnSerializeMessage_Register2",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnSerializeMessageCallback"
+        },
+        {
+          "name": "priority",
+          "type": "int32",
+          "ref": false,
+          "description": "Higher values run first; equal priorities run in registration order. OnSerializeMessage_Register uses 0."
         }
       ],
       "retType": {
@@ -31022,7 +33492,23 @@
     {
       "name": "OnClientConnectedCallback",
       "funcName": "OnClientConnectedCallback",
-      "description": "Called once a client has connected and got a player slot, for players (after OnClientConnect accepted them) and bots alike, right after the player_connect event and before OnClientPutInServer. This callback is paired with OnClientDisconnect.",
+      "description": "Deprecated, use OnClientSessionStart. Called once a client has connected and got a player slot, for players (after OnClientConnect accepted them) and bots alike, right after the player_connect event and before OnClientPutInServer. Not called for clients already connected when the plugins are loaded.",
+      "paramTypes": [
+        {
+          "name": "playerSlot",
+          "type": "int32",
+          "description": "The player slot"
+        }
+      ],
+      "retType": {
+        "type": "void",
+        "description": ""
+      }
+    },
+    {
+      "name": "OnClientSessionStartCallback",
+      "funcName": "OnClientSessionStartCallback",
+      "description": "Called once when a client connection starts, for players (after OnClientConnect accepted them) and bots alike, right after the player_connect event and before OnClientPutInServer. Paired with OnClientSessionEnd. For clients already connected when the plugins are loaded it is called right before their OnClientPutInServer. A map change can move a player to another slot during the session, so keep per-player data by SteamID rather than by slot.",
       "paramTypes": [
         {
           "name": "playerSlot",
@@ -31054,7 +33540,29 @@
     {
       "name": "OnClientDisconnectCallback",
       "funcName": "OnClientDisconnectCallback",
-      "description": "Called when a client is disconnecting from the server, for players and bots, before the player_disconnect event. The client data is still available here and is reset once the callbacks return.",
+      "description": "Called when a client leaves the current map, for players and bots, before the player_disconnect event. Paired with OnClientPutInServer: a player staying through a map change gets it too, with the reason NETWORK_DISCONNECT_SHUTDOWN. It can also come without OnClientPutInServer if the client leaves before entering the game. Use OnClientSessionEnd for the end of the connection. The controller and pawn are unavailable once the callbacks return.",
+      "paramTypes": [
+        {
+          "name": "playerSlot",
+          "type": "int32",
+          "description": "The player slot"
+        },
+        {
+          "name": "reason",
+          "type": "int32",
+          "description": "The reason for disconnect",
+          "enum": "NetworkDisconnectionReason"
+        }
+      ],
+      "retType": {
+        "type": "void",
+        "description": ""
+      }
+    },
+    {
+      "name": "OnClientSessionEndCallback",
+      "funcName": "OnClientSessionEndCallback",
+      "description": "Called when a client connection really ends, for players and bots. Paired with OnClientSessionStart: unlike OnClientDisconnect it does not fire for a player staying through a map change, or when the plugins are unloaded. With extra addons a client really reconnects on a map change, so it fires with the reason NETWORK_DISCONNECT_LOOPDEACTIVATE and a new session starts. The SteamID, language and other client data are still available and are reset once the callbacks return; the controller and pawn are not, the client has already left the map.",
       "paramTypes": [
         {
           "name": "playerSlot",

@@ -330,7 +330,7 @@ extern "C" PLUGIN_API int FindEntityByTarget(int startFrom, const plg::string& n
  */
 extern "C" PLUGIN_API int FindEntityInSphere(int startFrom, const plg::vec3& origin, float radius) {
 	CEntityInstance* startEnt = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(startFrom));
-	CEntityInstance* found = entities::FindInSphere(startEnt, nullptr, std::bit_cast<Vector>(origin), radius);
+	CEntityInstance* found = entities::FindInSphere(startEnt, std::bit_cast<Vector>(origin), radius);
 	return found ? found->GetRefEHandle().ToInt() : INVALID_EHANDLE_INDEX;
 }
 
@@ -818,8 +818,9 @@ extern "C" PLUGIN_API int GetEntityOwner(int entityHandle) {
 extern "C" PLUGIN_API void SetEntityOwner(int entityHandle, int ownerHandle) {
 	auto* entity = helpers::GetEntity(entityHandle);
 	if (!entity) return;
-	auto* owner = helpers::GetEntity(ownerHandle);
-	if (!owner) return;
+	// INVALID_EHANDLE_INDEX clears the owner
+	auto* owner = ownerHandle != INVALID_EHANDLE_INDEX ? helpers::GetEntity(ownerHandle) : nullptr;
+	if (!owner && ownerHandle != INVALID_EHANDLE_INDEX) return;
 	ParamScope params(owner);
 	entity->SetOwner(params[0]);
 }
@@ -1555,7 +1556,9 @@ extern "C" PLUGIN_API void AcceptEntityInput(int entityHandle, const plg::string
 extern "C" PLUGIN_API void ConnectEntityOutput(int entityHandle, const plg::string& output, const plg::string& functionName) {
 	auto* entity = helpers::GetEntity<CEntityInstance2>(entityHandle);
 	if (!entity) return;
-	entity->ConnectOutput(output.c_str(), functionName.c_str());
+	// Called outside a script, the game's ConnectOutput leaves the connection without a target
+	ParamScope params(entity);
+	entity->RedirectOutput(output.c_str(), functionName.c_str(), params[0]);
 }
 
 /**
@@ -1570,7 +1573,8 @@ extern "C" PLUGIN_API void ConnectEntityOutput(int entityHandle, const plg::stri
 extern "C" PLUGIN_API void DisconnectEntityOutput(int entityHandle, const plg::string& output, const plg::string& functionName) {
 	auto* entity = helpers::GetEntity<CEntityInstance2>(entityHandle);
 	if (!entity) return;
-	entity->DisconnectOutput(output.c_str(), functionName.c_str());
+	ParamScope params(entity);
+	entity->DisconnectRedirectedOutput(output.c_str(), functionName.c_str(), params[0]);
 }
 
 /**
@@ -1659,7 +1663,7 @@ extern "C" PLUGIN_API void FollowEntityMerge(int entityHandle, int attachmentHan
 	auto* attach = helpers::GetEntity(attachmentHandle);
 	if (!attach) return;
 	ParamScope params(attach);
-	entity->FollowEntity(params[0], boneOrAttachName.c_str());
+	entity->FollowEntityMerge(params[0], boneOrAttachName.c_str());
 }
 
 /**
@@ -1683,11 +1687,7 @@ extern "C" PLUGIN_API int TakeEntityDamage(int entityHandle, int inflictorHandle
 	if (!inflictor) return {};
 	auto* attacker = helpers::GetEntity(attackerHandle);
 	if (!attacker) return {};
-	ParamScope params(inflictor, attacker);
-	HSCRIPT takeDamageInfo = CTakeDamage{}.CreateDamageInfo(params[0], params[1], std::bit_cast<Vector>(force), std::bit_cast<Vector>(hitPos), damage, damageTypes);
-	int applied = entity->TakeDamage(takeDamageInfo);
-	CTakeDamage{}.DestroyDamageInfo(takeDamageInfo);
-	return applied;
+	return helpers::TakeDamage(entity, inflictor, attacker, std::bit_cast<Vector>(force), std::bit_cast<Vector>(hitPos), damage, damageTypes);
 }
 
 /**
