@@ -8,6 +8,7 @@
 #include <igameevents.h>
 #include <iserver.h>
 #include <netmessages.h>
+#include <usermessages.pb.h>
 #include <networksystem/inetworksystem.h>
 #include <steam_gameserver.h>
 #include <vscript/ccscript.h>
@@ -44,6 +45,33 @@ namespace {
 GAME_EVENT_F(round_start) {
 	g_PanoramaVoteHandler.Init();
 	g_TransmitManager.RoundStart();
+}
+
+polyhook::ResultType Hook_LogDirect(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
+	// CLoggingSystem* loggingSystem, LoggingChannelID_t channel, LoggingSeverity_t severity, const void* context, const char* message, va_list* args
+	auto message = polyhook::GetArgument<const char*>(params, 4);
+	auto args = polyhook::GetArgument<va_list*>(params, 5);
+
+	bool matched;
+	if (args) {
+		char buffer[MAX_LOGGING_MESSAGE_LENGTH];
+		// The original function still has to read the arguments
+		va_list copy;
+		va_copy(copy, *args);
+		V_vsnprintf(buffer, sizeof(buffer), message, copy);
+		va_end(copy);
+
+		matched = g_pCoreConfig->IsRegexMatch(buffer);
+	} else {
+		matched = g_pCoreConfig->IsRegexMatch(message);
+	}
+
+	if (matched) {
+		polyhook::SetReturn<int>(ret, LR_CONTINUE);
+		return polyhook::ResultType::Supercede;
+	}
+
+	return polyhook::ResultType::Ignored;
 }
 
 polyhook::ResultType Hook_StartupServer(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
@@ -682,6 +710,16 @@ polyhook::ResultType Hook_SendNetMessage(polyhook::HookHandle hook, polyhook::Pa
 	auto data = polyhook::GetArgument<CNetMessage*>(params, 1);
 	auto bufType = (NetChannelBufType_t) polyhook::GetArgument<int8_t>(params, 2);
 
+	if (auto* serializer = data->GetSerializerPB(); serializer && serializer->GetNetMessageInfo()->m_MessageId == UM_SayText2) {
+		auto* chat = static_cast<const CUserMessageSayText2*>(data->AsMessage());
+		auto receiver = g_PlayerManager.ToPlayer(client);
+		auto sender = g_PlayerManager.ToPlayer(CPlayerSlot(chat->entityindex() - 1));
+		if (receiver != nullptr && sender != nullptr && receiver->CanSeeChat(*sender) == false) {
+			polyhook::SetReturn<bool>(ret, true);
+			return polyhook::ResultType::Supercede;
+		}
+	}
+
 	if (client->IsFakeClient() || client->IsHLTV()) {
 		// Don't send messages to fake clients or replay clients
 		return polyhook::ResultType::Ignored;
@@ -689,10 +727,15 @@ polyhook::ResultType Hook_SendNetMessage(polyhook::HookHandle hook, polyhook::Pa
 
 	g_MultiAddonManager.OnSendNetMessage(client, data, bufType);
 
-	if (!g_SendNetMessageListenerManager.Empty()) {
+	if (g_UserMessageManager.HasSendNetMessageHooks() || !g_SendNetMessageListenerManager.Empty()) {
 		if (auto* msgSerializable = data->GetSerializerPB()) {
 			int playerSlot = client->GetPlayerSlot().Get();
 			UserMessage message(msgSerializable, data, 1ULL << playerSlot);
+			if (g_UserMessageManager.ExecuteSendNetMessageCallbacks(playerSlot, &message) >= ResultType::Handled) {
+				// A blocked message still counts as sent, the caller has no reason to treat it as a failure
+				polyhook::SetReturn<bool>(ret, true);
+				return polyhook::ResultType::Supercede;
+			}
 			g_SendNetMessageListenerManager(playerSlot, &message);
 		}
 	}
@@ -779,6 +822,11 @@ polyhook::ResultType Hook_OnEntityDeleted(polyhook::HookHandle hook, polyhook::P
 	} else if (name.ends_with("team_manager")) {
 		g_TeamManagers.erase(static_cast<CSTeam>(*entity->m_iTeamNum));
 	} else if (entity == g_pPointScript) {
+#if defined (CS2)
+		// CSScript::ResolveModule uses the last script without checking it, so a deleted one must not stay there
+		static auto offset = GetOrLog(g_pGameConfig->GetOffset("CCSScript_EntityScript"));
+		g_pScripts->FindAndRemove(reinterpret_cast<uint8_t*>(g_pPointScript) + offset);
+#endif
 		g_pPointScript = nullptr;
 	}
 
@@ -799,6 +847,41 @@ polyhook::ResultType Hook_ProcessRespondCvarValue(polyhook::HookHandle hook, pol
 	auto msg = polyhook::GetArgument<CCLCMsg_RespondCvarValue_t*>(params, 1);
 
 	g_PlayerManager.OnRespondCvarValue(client, *msg);
+	return polyhook::ResultType::Ignored;
+}
+
+polyhook::ResultType Hook_ProcessVoiceData(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
+	auto client = polyhook::GetArgument<CServerSideClientBase*>(params, 0);
+
+	auto player = g_PlayerManager.ToPlayer(client);
+	if (player != nullptr && (player->GetVoiceFlags() & Speak_Muted)) {
+		polyhook::SetReturn<bool>(ret, true);
+		return polyhook::ResultType::Supercede;
+	}
+
+	return polyhook::ResultType::Ignored;
+}
+
+polyhook::ResultType Hook_IsHearingClient(polyhook::HookHandle hook, polyhook::ParametersHandle params, int count, polyhook::ReturnHandle ret, polyhook::CallbackType type) {
+	auto client = polyhook::GetArgument<CServerSideClientBase*>(params, 0);
+	auto senderSlot = CPlayerSlot(polyhook::GetArgument<int>(params, 1));
+
+	// The sender's own voice is the loopback setting of the client
+	if (client->GetPlayerSlot() == senderSlot) {
+		return polyhook::ResultType::Ignored;
+	}
+
+	auto receiver = g_PlayerManager.ToPlayer(client);
+	auto sender = g_PlayerManager.ToPlayer(senderSlot);
+	if (receiver == nullptr || sender == nullptr) {
+		return polyhook::ResultType::Ignored;
+	}
+
+	if (auto hearing = receiver->CanHearVoice(*sender)) {
+		polyhook::SetReturn<bool>(ret, *hearing);
+		return polyhook::ResultType::Supercede;
+	}
+
 	return polyhook::ResultType::Ignored;
 }
 
@@ -916,8 +999,12 @@ Result<void> SetupHooks() {
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IEntityListener::OnEntityDeleted), &IEntityListener::OnEntityDeleted, pSource2GameEntitiesEntityListener, Hook_OnEntityDeleted, {Post}));
 	CHECK(g_HookManager.AddHookVTableFunc(STR(IEntityListener::OnEntityParentChanged), &IEntityListener::OnEntityParentChanged, pSource2GameEntitiesEntityListener, Hook_OnEntityParentChanged, {Post}));
 
-	//using LogDirect = LoggingResponse_t (*)(void* loggingSystem, LoggingChannelID_t channel, LoggingSeverity_t severity, LeafCodeInfo_t*, LoggingMetaData_t*, Color, char const*, va_list*);
-	//CHECK(g_HookManager.AddHookDetourFunc<LogDirect>("LogDirect", Hook_LogDirect, {Pre}));
+	if (!g_pCoreConfig->FilterConsoleCleaner.empty()) {
+		using LogDirect = LoggingResponse_t (*)(void* loggingSystem, LoggingChannelID_t channel, LoggingSeverity_t severity, const void* context, const char* message, va_list* args);
+		if (auto result = g_HookManager.AddHookDetourFunc<LogDirect>("LogDirect", Hook_LogDirect, {Pre}); !result) {
+			plg::print(LS_WARNING, "FilterConsoleCleaner is disabled: {}\n", result.error());
+		}
+	}
 
 	static Memory CLuaVM;
 	UNWRAP(CLuaVM, g_pGameConfig->GetVTable("CLuaVM"));
@@ -947,6 +1034,8 @@ Result<void> SetupHooks() {
 	static Memory CServerSideClient;
 	UNWRAP(CServerSideClient, g_pGameConfig->GetVTable("CServerSideClient"));
 	CHECK(g_HookManager.AddHookVFuncFunc(STR(CServerSideClientBase::ProcessRespondCvarValue), &CServerSideClientBase::ProcessRespondCvarValue, CServerSideClient, Hook_ProcessRespondCvarValue, {Pre}));
+	CHECK(g_HookManager.AddHookVFuncFunc(STR(CServerSideClientBase::ProcessVoiceData), &CServerSideClientBase::ProcessVoiceData, CServerSideClient, Hook_ProcessVoiceData, {Pre}));
+	CHECK(g_HookManager.AddHookVFuncFunc(STR(CServerSideClientBase::IsHearingClient), &CServerSideClientBase::IsHearingClient, CServerSideClient, Hook_IsHearingClient, {Pre}));
 	CHECK(g_HookManager.AddHookVFuncFunc(STR(CServerSideClientBase::SendNetMessage), &CServerSideClientBase::SendNetMessage, CServerSideClient, Hook_SendNetMessage, {Pre}));
 	CHECK(g_HookManager.AddHookVFuncFunc(STR(CServerSideClientBase::PerformDisconnection), &CServerSideClientBase::PerformDisconnection, CServerSideClient, Hook_PerformDisconnection, {Pre}));
 	CHECK(g_HookManager.AddHookVFuncFunc(STR(CServerSideClientBase::Reactivate), &CServerSideClientBase::Reactivate, CServerSideClient, Hook_Reactivate, {Post}));

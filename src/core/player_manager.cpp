@@ -290,6 +290,67 @@ ENetworkDisconnectionReason PlayerManager::OnClientConnect(char const* name, cha
 	return result;
 }
 
+ListenOverride Player::GetListenOverride(uint64 steamID64) const {
+	auto it = m_listenOverrides.find(steamID64);
+	return it != m_listenOverrides.end() ? it->second : Listen_Default;
+}
+
+void Player::SetListenOverride(uint64 steamID64, ListenOverride listen) {
+	if (listen == Listen_Default) {
+		m_listenOverrides.erase(steamID64);
+	} else {
+		m_listenOverrides[steamID64] = listen;
+	}
+}
+
+ListenOverride Player::GetChatListenOverride(uint64 steamID64) const {
+	auto it = m_chatListenOverrides.find(steamID64);
+	return it != m_chatListenOverrides.end() ? it->second : Listen_Default;
+}
+
+void Player::SetChatListenOverride(uint64 steamID64, ListenOverride listen) {
+	if (listen == Listen_Default) {
+		m_chatListenOverrides.erase(steamID64);
+	} else {
+		m_chatListenOverrides[steamID64] = listen;
+	}
+}
+
+std::optional<bool> Player::ResolveAccess(const Player& sender, uint8_t senderFlags, uint8_t receiverFlags, const plg::flat_hash_map<uint64, ListenOverride>& overrides) const {
+	if (senderFlags & Speak_Muted) {
+		return false;
+	}
+
+	if (!overrides.empty()) {
+		auto it = overrides.find(sender.GetSteamId().ConvertToUint64());
+		if (it != overrides.end()) {
+			return it->second == Listen_Hear;
+		}
+	}
+
+	if ((senderFlags & Speak_All) || (receiverFlags & Speak_ListenAll)) {
+		return true;
+	}
+
+	if ((senderFlags & Speak_Team) || (receiverFlags & Speak_ListenTeam)) {
+		auto receiverController = GetController();
+		auto senderController = sender.GetController();
+		if (receiverController && senderController) {
+			return *receiverController->m_iTeamNum == *senderController->m_iTeamNum;
+		}
+	}
+
+	return std::nullopt;
+}
+
+std::optional<bool> Player::CanHearVoice(const Player& sender) const {
+	return ResolveAccess(sender, sender.m_voiceFlags, m_voiceFlags, m_listenOverrides);
+}
+
+std::optional<bool> Player::CanSeeChat(const Player& sender) const {
+	return ResolveAccess(sender, sender.m_chatFlags, m_chatFlags, m_chatListenOverrides);
+}
+
 void PlayerManager::OnClientConnected(CPlayerSlot slot, uint64 steamID64) {
 	if (Player* player = ToPlayer(slot)) {
 		player->Init(slot, steamID64, utils::GetClientBySlot(slot));

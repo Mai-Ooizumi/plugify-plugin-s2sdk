@@ -80,6 +80,14 @@
         IsClientConnected;
         IsClientInGame;
         IsClientSourceTV;
+        GetClientVoiceFlags;
+        SetClientVoiceFlags;
+        GetClientListening;
+        SetClientListening;
+        GetClientChatFlags;
+        SetClientChatFlags;
+        GetClientChatListening;
+        SetClientChatListening;
         IsClientAlive;
         IsFakeClient;
         GetClientMoveType;
@@ -720,6 +728,8 @@
 
         HookUserMessage;
         UnhookUserMessage;
+        HookSendNetMessage;
+        UnhookSendNetMessage;
         UserMessageCreateFromSerializable;
         UserMessageCreateFromName;
         UserMessageCreateFromId;
