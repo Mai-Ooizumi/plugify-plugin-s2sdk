@@ -56,6 +56,21 @@
         Kv1MakeCopy;
         Kv1Clear;
         Kv1IsEmpty;
+        Kv1LoadFromFile;
+        Kv1LoadFromString;
+        Kv1SaveToFile;
+        Kv1RemoveKey;
+        Kv1GetUint64;
+        Kv1SetUint64;
+        Kv1GetDataType;
+        Kv1GetFirstValue;
+        Kv1GetNextValue;
+        Kv1GetFirstTrueSubKey;
+        Kv1GetNextTrueSubKey;
+        Kv1RemoveSubKey;
+        Kv1SetEscapeSequences;
+        Kv1CopySubkeys;
+        Kv1ExportToString;
 
         EntPointerToPlayerSlot;
         PlayerSlotToEntPointer;

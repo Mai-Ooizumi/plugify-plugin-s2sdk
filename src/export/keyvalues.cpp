@@ -1,4 +1,6 @@
 #include <keyvalues.h>
+#include <filesystem.h>
+#include <utlbuffer.h>
 
 PLUGIFY_WARN_PUSH()
 
@@ -362,6 +364,192 @@ extern "C" PLUGIN_API void Kv1Clear(KeyValues* kv) {
  */
 extern "C" PLUGIN_API bool Kv1IsEmpty(KeyValues* kv, const plg::string& keyName) {
 	return kv ? kv->IsEmpty(keyName.c_str()) : true;
+}
+
+/**
+ * @brief Loads a KeyValues file into this instance, merging it with the existing keys
+ *
+ * @param kv Pointer to the KeyValues object
+ * @param path An absolute path, for example from the plugin directories, or a path relative to the search path
+ * @param pathID The search path ID, empty to search all paths
+ * @return true if the file was loaded, false otherwise
+ */
+extern "C" PLUGIN_API bool Kv1LoadFromFile(KeyValues* kv, const plg::string& path, const plg::string& pathID) {
+	if (!kv) return false;
+	return kv->LoadFromFile(g_pFullFileSystem, path.c_str(), pathID.empty() ? nullptr : pathID.c_str());
+}
+
+/**
+ * @brief Loads KeyValues text into this instance, merging it with the existing keys
+ *
+ * @param kv Pointer to the KeyValues object
+ * @param text The KeyValues text
+ * @return true if the text was parsed, false otherwise
+ */
+extern "C" PLUGIN_API bool Kv1LoadFromString(KeyValues* kv, const plg::string& text) {
+	if (!kv) return false;
+	return kv->LoadFromBuffer(kv->GetName(), text.c_str());
+}
+
+/**
+ * @brief Saves this instance to a text file
+ *
+ * @param kv Pointer to the KeyValues object
+ * @param path An absolute path, for example from the plugin directories, or a path relative to the search path
+ * @param pathID The search path ID, empty to use the default write path
+ * @return true if the file was saved, false otherwise, for example if its directory does not exist
+ */
+extern "C" PLUGIN_API bool Kv1SaveToFile(KeyValues* kv, const plg::string& path, const plg::string& pathID) {
+	if (!kv) return false;
+	return kv->SaveToFile(g_pFullFileSystem, path.c_str(), pathID.empty() ? nullptr : pathID.c_str(), false, false);
+}
+
+/**
+ * @brief Removes a direct child key and deletes it with its subkeys
+ *
+ * @param kv Pointer to the parent KeyValues object
+ * @param keyName The name of the key to remove
+ * @return true if the key existed and was removed, false otherwise
+ */
+extern "C" PLUGIN_API bool Kv1RemoveKey(KeyValues* kv, const plg::string& keyName) {
+	return kv ? kv->FindAndDeleteSubKey(keyName.c_str()) : false;
+}
+
+/**
+ * @brief Gets an unsigned 64-bit value from a key
+ *
+ * @param kv Pointer to the KeyValues object
+ * @param keyName The name of the key, empty to read this key
+ * @param defaultValue The value to return if the key is not found
+ * @return The value, or defaultValue if the key is not found
+ */
+extern "C" PLUGIN_API uint64_t Kv1GetUint64(KeyValues* kv, const plg::string& keyName, uint64_t defaultValue) {
+	if (!kv) return defaultValue;
+	return kv->GetUint64(keyName.c_str(), defaultValue);
+}
+
+/**
+ * @brief Sets an unsigned 64-bit value on a key
+ *
+ * @param kv Pointer to the KeyValues object
+ * @param keyName The name of the key, empty to set this key
+ * @param value The value to set
+ */
+extern "C" PLUGIN_API void Kv1SetUint64(KeyValues* kv, const plg::string& keyName, uint64_t value) {
+	if (kv) kv->SetUint64(keyName.c_str(), value);
+}
+
+/**
+ * @brief Gets the data type of a key
+ *
+ * @param kv Pointer to the KeyValues object
+ * @param keyName The name of the key, empty to read this key
+ * @return The data type of the key, None if it has no value or doesn't exist
+ */
+extern "C" PLUGIN_API int Kv1GetDataType(KeyValues* kv, const plg::string& keyName) {
+	return kv ? static_cast<int>(kv->GetDataType(keyName.c_str())) : 0;
+}
+
+/**
+ * @brief Gets the first child that has no subkeys of its own
+ *
+ * @param kv Pointer to the parent KeyValues object
+ * @return Pointer to the first value, or NULL if there are none
+ */
+extern "C" PLUGIN_API KeyValues* Kv1GetFirstValue(KeyValues* kv) {
+	return kv ? kv->GetFirstValue() : nullptr;
+}
+
+/**
+ * @brief Gets the next sibling that has no subkeys of its own
+ *
+ * @param kv Pointer to the current value
+ * @return Pointer to the next value, or NULL if there are no more
+ */
+extern "C" PLUGIN_API KeyValues* Kv1GetNextValue(KeyValues* kv) {
+	return kv ? kv->GetNextValue() : nullptr;
+}
+
+/**
+ * @brief Gets the first child that is a block with subkeys
+ *
+ * @param kv Pointer to the parent KeyValues object
+ * @return Pointer to the first block, or NULL if there are none
+ */
+extern "C" PLUGIN_API KeyValues* Kv1GetFirstTrueSubKey(KeyValues* kv) {
+	return kv ? kv->GetFirstTrueSubKey() : nullptr;
+}
+
+/**
+ * @brief Gets the next sibling that is a block with subkeys
+ *
+ * @param kv Pointer to the current block
+ * @return Pointer to the next block, or NULL if there are no more
+ */
+extern "C" PLUGIN_API KeyValues* Kv1GetNextTrueSubKey(KeyValues* kv) {
+	return kv ? kv->GetNextTrueSubKey() : nullptr;
+}
+
+/**
+ * @brief Removes a child by its pointer and deletes it with its subkeys. Get the next key before calling this while iterating.
+ *
+ * @param kv Pointer to the parent KeyValues object
+ * @param child Pointer to the child to remove
+ * @return true if it was a child of this key and was removed, false otherwise
+ */
+extern "C" PLUGIN_API bool Kv1RemoveSubKey(KeyValues* kv, KeyValues* child) {
+	if (!kv || !child) return false;
+	for (auto* subKey = kv->GetFirstSubKey(); subKey; subKey = subKey->GetNextKey()) {
+		if (subKey == child) {
+			kv->RemoveSubKey(child);
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * @brief Sets whether \\n, \\t and \\" are treated as escape sequences when this instance is loaded or saved
+ *
+ * @param kv Pointer to the KeyValues object
+ * @param enabled true to use escape sequences, false to keep them as plain text
+ */
+extern "C" PLUGIN_API void Kv1SetEscapeSequences(KeyValues* kv, bool enabled) {
+	if (kv) kv->UsesEscapeSequences(enabled);
+}
+
+/**
+ * @brief Replaces the subkeys of another instance with copies of the subkeys of this one
+ *
+ * @note The keys are not merged: everything the target already had is deleted, even keys the source doesn't have.
+ *       Copying an instance into itself does nothing.
+ *
+ * @param kv Pointer to the source KeyValues object
+ * @param target Pointer to the KeyValues object that receives the copies, its existing keys are deleted
+ */
+extern "C" PLUGIN_API void Kv1CopySubkeys(KeyValues* kv, KeyValues* target) {
+	if (!kv || !target || kv == target) return;
+	// Clearing the target can delete the source when it is a descendant.
+	KeyValues snapshot("Kv1CopySubkeys", target->GetKeyValuesSystem());
+	kv->CopySubkeys(&snapshot);
+	target->Clear();
+	while (auto* child = snapshot.GetFirstSubKey()) {
+		snapshot.RemoveSubKey(child, false);
+		target->AddSubKey(child);
+	}
+}
+
+/**
+ * @brief Writes this instance as KeyValues text
+ *
+ * @param kv Pointer to the KeyValues object
+ * @return The KeyValues text, empty if kv is null
+ */
+extern "C" PLUGIN_API plg::string Kv1ExportToString(KeyValues* kv) {
+	if (!kv) return {};
+	CUtlBuffer buffer(0, 0, CUtlBuffer::TEXT_BUFFER);
+	kv->RecursiveSaveToFile(buffer, 0, true, true);
+	return plg::string(static_cast<const char*>(buffer.Base()), buffer.TellPut());
 }
 
 PLUGIFY_WARN_POP()
