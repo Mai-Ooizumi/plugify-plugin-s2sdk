@@ -1,6 +1,8 @@
 #include <core/core_config.hpp>
 #include <core/sdk/entity/cbaseentity.h>
+#include <core/sdk/helpers.hpp>
 #include <core/sdk/schema.hpp>
+#include <core/sdk/schema_helpers.hpp>
 #include <core/sdk/utils.hpp>
 #include <schemasystem/schemasystem.h>
 #include <tier0/utlstring.h>
@@ -21,7 +23,7 @@ PLUGIFY_LINKAGE()
  * @return The offset of the member in the class, or -1 if the offset is not found.
  */
 extern "C" PLUGIN_API int32_t GetSchemaOffset(const plg::string& className, const plg::string& memberName) {
-	return schema::GetOffset(className, memberName).offset;
+	return schema::FindOffset(className, memberName).offset;
 }
 
 /**
@@ -46,7 +48,7 @@ extern "C" PLUGIN_API int32_t GetSchemaChainOffset(const plg::string& className)
  * @return True if the member is networked, false otherwise.
  */
 extern "C" PLUGIN_API bool IsSchemaFieldNetworked(const plg::string& className, const plg::string& memberName) {
-	return schema::GetOffset(className, memberName).networked;
+	return schema::FindOffset(className, memberName).networked;
 }
 
 /**
@@ -82,18 +84,7 @@ extern "C" PLUGIN_API int32_t GetSchemaClassSize(const plg::string& className) {
  * @return The integer value at the given memory location.
  */
 extern "C" PLUGIN_API int64_t GetEntData2(CEntityInstance* entity, int offset, int size) {
-	switch (size) {
-		case sizeof(int8_t):
-			return *reinterpret_cast<int8_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-		case sizeof(int16_t):
-			return *reinterpret_cast<int16_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-		case sizeof(int32_t):
-			return *reinterpret_cast<int32_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-		case sizeof(int64_t):
-			return *reinterpret_cast<int64_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-		default:
-			return 0;
-	}
+	return schema::ReadValue<int64_t>(&schema::DataAt<uint8>(entity, offset), size);
 }
 
 /**
@@ -107,26 +98,8 @@ extern "C" PLUGIN_API int64_t GetEntData2(CEntityInstance* entity, int offset, i
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntData2(CEntityInstance* entity, int offset, int64_t value, int size, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	switch (size) {
-		case sizeof(int8_t):
-			*reinterpret_cast<int8_t*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<int8_t>(value);
-			break;
-		case sizeof(int16_t):
-			*reinterpret_cast<int16_t*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<int16_t>(value);
-			break;
-		case sizeof(int32_t):
-			*reinterpret_cast<int32_t*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<int32_t>(value);
-			break;
-		case sizeof(int64_t):
-			*reinterpret_cast<int64_t*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
-			break;
-		default:
-			break;
-	}
+	schema::NotifyDataChanged(entity, offset, chainOffset, changeState);
+	schema::WriteValue<int64_t>(&schema::DataAt<uint8>(entity, offset), size, value);
 }
 
 //
@@ -140,14 +113,7 @@ extern "C" PLUGIN_API void SetEntData2(CEntityInstance* entity, int offset, int6
  * @return The float value at the given memory location.
  */
 extern "C" PLUGIN_API double GetEntDataFloat2(CEntityInstance* entity, int offset, int size) {
-	switch (size) {
-		case sizeof(int32_t):
-			return *reinterpret_cast<float*>(reinterpret_cast<intptr_t>(entity) + offset);
-		case sizeof(int64_t):
-			return *reinterpret_cast<double*>(reinterpret_cast<intptr_t>(entity) + offset);
-		default:
-			return 0;
-	}
+	return schema::ReadValue<double>(&schema::DataAt<uint8>(entity, offset), size);
 }
 
 /**
@@ -161,20 +127,8 @@ extern "C" PLUGIN_API double GetEntDataFloat2(CEntityInstance* entity, int offse
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataFloat2(CEntityInstance* entity, int offset, double value, int size, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	switch (size) {
-		case sizeof(int32_t):
-			*reinterpret_cast<float*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<float>(value);
-			break;
-		case sizeof(int64_t):
-			*reinterpret_cast<double*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
-			break;
-		default:
-			break;
-	}
+	schema::NotifyDataChanged(entity, offset, chainOffset, changeState);
+	schema::WriteValue<double>(&schema::DataAt<uint8>(entity, offset), size, value);
 }
 
 //
@@ -187,7 +141,7 @@ extern "C" PLUGIN_API void SetEntDataFloat2(CEntityInstance* entity, int offset,
  * @return The color value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntDataColor2(CEntityInstance* entity, int offset) {
-	return std::bit_cast<plg::vec4>(reinterpret_cast<Color*>(reinterpret_cast<intptr_t>(entity) + offset)->ToVector4D());
+	return std::bit_cast<plg::vec4>(schema::DataAt<Color>(entity, offset).ToVector4D());
 }
 
 /**
@@ -200,11 +154,7 @@ extern "C" PLUGIN_API plg::vec4 GetEntDataColor2(CEntityInstance* entity, int of
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataColor2(CEntityInstance* entity, int offset, const plg::vec4& value, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	*reinterpret_cast<Color*>(reinterpret_cast<intptr_t>(entity) + offset) = NewColor(value);
+	schema::SetData(entity, offset, NewColor(value), changeState, chainOffset);
 }
 
 //
@@ -217,7 +167,7 @@ extern "C" PLUGIN_API void SetEntDataColor2(CEntityInstance* entity, int offset,
  * @return The string value at the given memory location.
  */
 extern "C" PLUGIN_API plg::string GetEntDataString2(CEntityInstance* entity, int offset) {
-	return reinterpret_cast<CUtlString*>(reinterpret_cast<intptr_t>(entity) + offset)->Get();
+	return schema::DataAt<CUtlString>(entity, offset).Get();
 }
 
 /**
@@ -230,11 +180,8 @@ extern "C" PLUGIN_API plg::string GetEntDataString2(CEntityInstance* entity, int
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataString2(CEntityInstance* entity, int offset, const plg::string& value, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	*reinterpret_cast<CUtlString*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
+	schema::NotifyDataChanged(entity, offset, chainOffset, changeState);
+	schema::DataAt<CUtlString>(entity, offset) = value;
 }
 
 //
@@ -248,9 +195,8 @@ extern "C" PLUGIN_API void SetEntDataString2(CEntityInstance* entity, int offset
  * @return The string value at the given memory location.
  */
 extern "C" PLUGIN_API plg::string GetEntDataCString2(CEntityInstance* entity, int offset, int size) {
-	const char* src = reinterpret_cast<const char*>(reinterpret_cast<intptr_t>(entity) + offset);
-	const std::size_t len = strnlen(src, size);
-	return plg::string(src, len);
+	const char* src = &schema::DataAt<char>(entity, offset);
+	return plg::string(src, strnlen(src, size));
 }
 
 /**
@@ -264,26 +210,141 @@ extern "C" PLUGIN_API plg::string GetEntDataCString2(CEntityInstance* entity, in
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataCString2(CEntityInstance* entity, int offset, const plg::string& value, int size, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
+	schema::NotifyDataChanged(entity, offset, chainOffset, changeState);
+
+	if (size == -1) {
+		schema::DataAt<CUtlSymbolLarge>(entity, offset) = g_pGameEntitySystem->AllocPooledString(value.c_str());
+		return;
 	}
 
-	switch (size) {
-		case -1: {
-			const CUtlSymbolLarge pooled = g_pGameEntitySystem->AllocPooledString(value.c_str());
-			*reinterpret_cast<CUtlSymbolLarge*>(reinterpret_cast<intptr_t>(entity) + offset) = pooled;
+	char* dst = &schema::DataAt<char>(entity, offset);
+	const size_t n = std::min(value.size(), static_cast<size_t>(size - 1));
+	value.copy(dst, n);
+	dst[n] = '\0';
+}
 
-			break;
-		}
-		default: {
-			char* dst = reinterpret_cast<char*>(reinterpret_cast<intptr_t>(entity) + offset);
-			const size_t n = std::min(value.size(), static_cast<size_t>(size - 1));
-			value.copy(dst, n);
-			dst[n] = '\0';
+//
 
-			break;
-		}
-	}
+/**
+ * @brief Peeks into an entity's object data and retrieves the fixed-size integer array at the given offset.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @return The array values at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<int64_t> GetEntDataCArray2(CEntityInstance* entity, int offset, int arraySize, int dataSize) {
+	return schema::GetDataCArray<int64_t>(entity, offset, arraySize, dataSize);
+}
+
+/**
+ * @brief Peeks into an entity's object data and sets the fixed-size integer array at the given offset.
+ *
+ * Writes min(value.size(), arraySize) elements, the rest of the array is left untouched.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The array values to set.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataCArray2(CEntityInstance* entity, int offset, const plg::vector<int64_t>& value, int arraySize, int dataSize, bool changeState, int chainOffset) {
+	schema::SetDataCArray(entity, offset, value, arraySize, dataSize, changeState, chainOffset);
+}
+
+//
+
+/**
+ * @brief Peeks into an entity's object data and retrieves the fixed-size float array at the given offset.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @return The array values at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<double> GetEntDataCArrayFloat2(CEntityInstance* entity, int offset, int arraySize, int dataSize) {
+	return schema::GetDataCArray<double>(entity, offset, arraySize, dataSize);
+}
+
+/**
+ * @brief Peeks into an entity's object data and sets the fixed-size float array at the given offset.
+ *
+ * Writes min(value.size(), arraySize) elements, the rest of the array is left untouched.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The array values to set.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataCArrayFloat2(CEntityInstance* entity, int offset, const plg::vector<double>& value, int arraySize, int dataSize, bool changeState, int chainOffset) {
+	schema::SetDataCArray(entity, offset, value, arraySize, dataSize, changeState, chainOffset);
+}
+
+//
+
+/**
+ * @brief Peeks into an entity's object data and retrieves the integer vector (CUtlVector) at the given offset.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @return The vector elements at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<int64_t> GetEntDataArray2(CEntityInstance* entity, int offset, int dataSize) {
+	return schema::GetDataVector<int64_t>(entity, offset, dataSize);
+}
+
+/**
+ * @brief Peeks into an entity's object data and replaces the integer vector (CUtlVector) at the given offset.
+ *
+ * The vector is resized to value.size() and filled with the given values.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The vector elements to set.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataArray2(CEntityInstance* entity, int offset, const plg::vector<int64_t>& value, int dataSize, bool changeState, int chainOffset) {
+	schema::SetDataVector(entity, offset, value, dataSize, changeState, chainOffset);
+}
+
+//
+
+/**
+ * @brief Peeks into an entity's object data and retrieves the float vector (CUtlVector) at the given offset.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @return The vector elements at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<double> GetEntDataArrayFloat2(CEntityInstance* entity, int offset, int dataSize) {
+	return schema::GetDataVector<double>(entity, offset, dataSize);
+}
+
+/**
+ * @brief Peeks into an entity's object data and replaces the float vector (CUtlVector) at the given offset.
+ *
+ * The vector is resized to value.size() and filled with the given values.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The vector elements to set.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataArrayFloat2(CEntityInstance* entity, int offset, const plg::vector<double>& value, int dataSize, bool changeState, int chainOffset) {
+	schema::SetDataVector(entity, offset, value, dataSize, changeState, chainOffset);
 }
 
 //
@@ -296,7 +357,7 @@ extern "C" PLUGIN_API void SetEntDataCString2(CEntityInstance* entity, int offse
  * @return The vector value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec3 GetEntDataVector3D2(CEntityInstance* entity, int offset) {
-	return *reinterpret_cast<plg::vec3*>(reinterpret_cast<intptr_t>(entity) + offset);
+	return schema::DataAt<plg::vec3>(entity, offset);
 }
 
 /**
@@ -309,11 +370,7 @@ extern "C" PLUGIN_API plg::vec3 GetEntDataVector3D2(CEntityInstance* entity, int
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataVector3D2(CEntityInstance* entity, int offset, const plg::vec3& value, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	*reinterpret_cast<plg::vec3*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
+	schema::SetData(entity, offset, value, changeState, chainOffset);
 }
 
 //
@@ -326,7 +383,7 @@ extern "C" PLUGIN_API void SetEntDataVector3D2(CEntityInstance* entity, int offs
  * @return The vector value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntDataVector4D2(CEntityInstance* entity, int offset) {
-	return *reinterpret_cast<plg::vec4*>(reinterpret_cast<intptr_t>(entity) + offset);
+	return schema::DataAt<plg::vec4>(entity, offset);
 }
 
 /**
@@ -339,11 +396,7 @@ extern "C" PLUGIN_API plg::vec4 GetEntDataVector4D2(CEntityInstance* entity, int
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataVector4D2(CEntityInstance* entity, int offset, const plg::vec4& value, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	*reinterpret_cast<plg::vec4*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
+	schema::SetData(entity, offset, value, changeState, chainOffset);
 }
 
 //
@@ -356,7 +409,7 @@ extern "C" PLUGIN_API void SetEntDataVector4D2(CEntityInstance* entity, int offs
  * @return The vector value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec2 GetEntDataVector2D2(CEntityInstance* entity, int offset) {
-	return *reinterpret_cast<plg::vec2*>(reinterpret_cast<intptr_t>(entity) + offset);
+	return schema::DataAt<plg::vec2>(entity, offset);
 }
 
 /**
@@ -369,11 +422,7 @@ extern "C" PLUGIN_API plg::vec2 GetEntDataVector2D2(CEntityInstance* entity, int
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataVector2D2(CEntityInstance* entity, int offset, const plg::vec2& value, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	*reinterpret_cast<plg::vec2*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
+	schema::SetData(entity, offset, value, changeState, chainOffset);
 }
 
 //
@@ -388,7 +437,7 @@ extern "C" PLUGIN_API void SetEntDataVector2D2(CEntityInstance* entity, int offs
  * @return The entity handle at the given memory location.
  */
 extern "C" PLUGIN_API int GetEntDataEnt2(CEntityInstance* entity, int offset) {
-	return reinterpret_cast<CEntityHandle*>(reinterpret_cast<intptr_t>(entity) + offset)->ToInt();
+	return schema::DataAt<CEntityHandle>(entity, offset).ToInt();
 }
 
 /**
@@ -401,11 +450,7 @@ extern "C" PLUGIN_API int GetEntDataEnt2(CEntityInstance* entity, int offset) {
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataEnt2(CEntityInstance* entity, int offset, int value, bool changeState, int chainOffset) {
-	if (changeState) {
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	}
-
-	*reinterpret_cast<CEntityHandle*>(reinterpret_cast<intptr_t>(entity) + offset) = CEntityHandle(value);
+	schema::SetData(entity, offset, CEntityHandle(value), changeState, chainOffset);
 }
 
 /**
@@ -416,7 +461,7 @@ extern "C" PLUGIN_API void SetEntDataEnt2(CEntityInstance* entity, int offset, i
  * @return A pointer to the data at the given memory location.
  */
 extern "C" PLUGIN_API void* GetEntDataPtr2(CEntityInstance* entity, int offset) {
-	return reinterpret_cast<void*>(reinterpret_cast<intptr_t>(entity) + offset);
+	return &schema::DataAt<uint8>(entity, offset);
 }
 
 /**
@@ -442,13 +487,7 @@ extern "C" PLUGIN_API void ChangeEntityState2(CEntityInstance* entity, int offse
  * @return The integer value at the given memory location.
  */
 extern "C" PLUGIN_API int64_t GetEntData(int entityHandle, int offset, int size) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntData2(entity, offset, size);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntData2(entity, offset, size); });
 }
 
 /**
@@ -462,13 +501,7 @@ extern "C" PLUGIN_API int64_t GetEntData(int entityHandle, int offset, int size)
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntData(int entityHandle, int offset, int64_t value, int size, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntData2(entity, offset, value, size, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntData2(entity, offset, value, size, changeState, chainOffset); });
 }
 
 //
@@ -482,13 +515,7 @@ extern "C" PLUGIN_API void SetEntData(int entityHandle, int offset, int64_t valu
  * @return The float value at the given memory location.
  */
 extern "C" PLUGIN_API double GetEntDataFloat(int entityHandle, int offset, int size) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntDataFloat2(entity, offset, size);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataFloat2(entity, offset, size); });
 }
 
 /**
@@ -502,13 +529,7 @@ extern "C" PLUGIN_API double GetEntDataFloat(int entityHandle, int offset, int s
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataFloat(int entityHandle, int offset, double value, int size, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntDataFloat2(entity, offset, value, size, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataFloat2(entity, offset, value, size, changeState, chainOffset); });
 }
 
 //
@@ -521,13 +542,7 @@ extern "C" PLUGIN_API void SetEntDataFloat(int entityHandle, int offset, double 
  * @return The color value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntDataColor(int entityHandle, int offset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntDataColor2(entity, offset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataColor2(entity, offset); });
 }
 
 /**
@@ -540,13 +555,7 @@ extern "C" PLUGIN_API plg::vec4 GetEntDataColor(int entityHandle, int offset) {
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataColor(int entityHandle, int offset, const plg::vec4& value, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntDataColor2(entity, offset, value, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataColor2(entity, offset, value, changeState, chainOffset); });
 }
 
 //
@@ -559,13 +568,7 @@ extern "C" PLUGIN_API void SetEntDataColor(int entityHandle, int offset, const p
  * @return The string value at the given memory location.
  */
 extern "C" PLUGIN_API plg::string GetEntDataString(int entityHandle, int offset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntDataString2(entity, offset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataString2(entity, offset); });
 }
 
 /**
@@ -578,13 +581,7 @@ extern "C" PLUGIN_API plg::string GetEntDataString(int entityHandle, int offset)
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataString(int entityHandle, int offset, const plg::string& value, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntDataString2(entity, offset, value, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataString2(entity, offset, value, changeState, chainOffset); });
 }
 
 /**
@@ -596,13 +593,7 @@ extern "C" PLUGIN_API void SetEntDataString(int entityHandle, int offset, const 
  * @return The string value at the given memory location.
  */
 extern "C" PLUGIN_API plg::string GetEntDataCString(int entityHandle, int offset, int size) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntDataCString2(entity, offset, size);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataCString2(entity, offset, size); });
 }
 
 /**
@@ -616,13 +607,125 @@ extern "C" PLUGIN_API plg::string GetEntDataCString(int entityHandle, int offset
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataCString(int entityHandle, int offset, const plg::string& value, int size, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataCString2(entity, offset, value, size, changeState, chainOffset); });
+}
 
-	SetEntDataCString2(entity, offset, value, size, changeState, chainOffset);
+//
+
+/**
+ * @brief Peeks into an entity's object data and retrieves the fixed-size integer array at the given offset.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @return The array values at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<int64_t> GetEntDataCArray(int entityHandle, int offset, int arraySize, int dataSize) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataCArray2(entity, offset, arraySize, dataSize); });
+}
+
+/**
+ * @brief Peeks into an entity's object data and sets the fixed-size integer array at the given offset.
+ *
+ * Writes min(value.size(), arraySize) elements, the rest of the array is left untouched.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The array values to set.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataCArray(int entityHandle, int offset, const plg::vector<int64_t>& value, int arraySize, int dataSize, bool changeState, int chainOffset) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataCArray2(entity, offset, value, arraySize, dataSize, changeState, chainOffset); });
+}
+
+/**
+ * @brief Peeks into an entity's object data and retrieves the fixed-size float array at the given offset.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @return The array values at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<double> GetEntDataCArrayFloat(int entityHandle, int offset, int arraySize, int dataSize) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataCArrayFloat2(entity, offset, arraySize, dataSize); });
+}
+
+/**
+ * @brief Peeks into an entity's object data and sets the fixed-size float array at the given offset.
+ *
+ * Writes min(value.size(), arraySize) elements, the rest of the array is left untouched.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The array values to set.
+ * @param arraySize Number of elements in the array.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataCArrayFloat(int entityHandle, int offset, const plg::vector<double>& value, int arraySize, int dataSize, bool changeState, int chainOffset) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataCArrayFloat2(entity, offset, value, arraySize, dataSize, changeState, chainOffset); });
+}
+
+/**
+ * @brief Peeks into an entity's object data and retrieves the integer vector (CUtlVector) at the given offset.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @return The vector elements at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<int64_t> GetEntDataArray(int entityHandle, int offset, int dataSize) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataArray2(entity, offset, dataSize); });
+}
+
+/**
+ * @brief Peeks into an entity's object data and replaces the integer vector (CUtlVector) at the given offset.
+ *
+ * The vector is resized to value.size() and filled with the given values.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The vector elements to set.
+ * @param dataSize Size of each element in bytes (1, 2, 4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataArray(int entityHandle, int offset, const plg::vector<int64_t>& value, int dataSize, bool changeState, int chainOffset) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataArray2(entity, offset, value, dataSize, changeState, chainOffset); });
+}
+
+/**
+ * @brief Peeks into an entity's object data and retrieves the float vector (CUtlVector) at the given offset.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be retrieved.
+ * @param offset The offset of the schema to use.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @return The vector elements at the given memory location.
+ */
+extern "C" PLUGIN_API plg::vector<double> GetEntDataArrayFloat(int entityHandle, int offset, int dataSize) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataArrayFloat2(entity, offset, dataSize); });
+}
+
+/**
+ * @brief Peeks into an entity's object data and replaces the float vector (CUtlVector) at the given offset.
+ *
+ * The vector is resized to value.size() and filled with the given values.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be set.
+ * @param offset The offset of the schema to use.
+ * @param value The vector elements to set.
+ * @param dataSize Size of each element in bytes (4 or 8).
+ * @param changeState If true, change will be sent over the network.
+ * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
+ */
+extern "C" PLUGIN_API void SetEntDataArrayFloat(int entityHandle, int offset, const plg::vector<double>& value, int dataSize, bool changeState, int chainOffset) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataArrayFloat2(entity, offset, value, dataSize, changeState, chainOffset); });
 }
 
 //
@@ -635,13 +738,7 @@ extern "C" PLUGIN_API void SetEntDataCString(int entityHandle, int offset, const
  * @return The vector value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec3 GetEntDataVector3D(int entityHandle, int offset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntDataVector3D2(entity, offset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataVector3D2(entity, offset); });
 }
 
 /**
@@ -654,13 +751,7 @@ extern "C" PLUGIN_API plg::vec3 GetEntDataVector3D(int entityHandle, int offset)
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataVector3D(int entityHandle, int offset, const plg::vec3& value, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntDataVector3D2(entity, offset, value, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataVector3D2(entity, offset, value, changeState, chainOffset); });
 }
 
 //
@@ -673,13 +764,7 @@ extern "C" PLUGIN_API void SetEntDataVector3D(int entityHandle, int offset, cons
  * @return The vector value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntDataVector4D(int entityHandle, int offset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntDataVector4D2(entity, offset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataVector4D2(entity, offset); });
 }
 
 /**
@@ -692,13 +777,7 @@ extern "C" PLUGIN_API plg::vec4 GetEntDataVector4D(int entityHandle, int offset)
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataVector4D(int entityHandle, int offset, const plg::vec4& value, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntDataVector4D2(entity, offset, value, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataVector4D2(entity, offset, value, changeState, chainOffset); });
 }
 
 //
@@ -713,13 +792,7 @@ extern "C" PLUGIN_API void SetEntDataVector4D(int entityHandle, int offset, cons
  * @return The vector value at the given memory location.
  */
 extern "C" PLUGIN_API plg::vec2 GetEntDataVector2D(int entityHandle, int offset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return {};
-	}
-
-	return GetEntDataVector2D2(entity, offset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataVector2D2(entity, offset); });
 }
 
 /**
@@ -732,13 +805,7 @@ extern "C" PLUGIN_API plg::vec2 GetEntDataVector2D(int entityHandle, int offset)
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataVector2D(int entityHandle, int offset, const plg::vec2& value, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntDataVector2D2(entity, offset, value, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataVector2D2(entity, offset, value, changeState, chainOffset); });
 }
 
 //
@@ -753,13 +820,7 @@ extern "C" PLUGIN_API void SetEntDataVector2D(int entityHandle, int offset, cons
  * @return The entity handle at the given memory location.
  */
 extern "C" PLUGIN_API int GetEntDataEnt(int entityHandle, int offset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return INVALID_EHANDLE_INDEX;
-	}
-
-	return GetEntDataEnt2(entity, offset);
+	return helpers::WithEntity(entityHandle, static_cast<int>(INVALID_EHANDLE_INDEX), [&](CEntityInstance* entity) { return GetEntDataEnt2(entity, offset); });
 }
 
 /**
@@ -772,13 +833,7 @@ extern "C" PLUGIN_API int GetEntDataEnt(int entityHandle, int offset) {
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void SetEntDataEnt(int entityHandle, int offset, int value, bool changeState, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	SetEntDataEnt2(entity, offset, value, changeState, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntDataEnt2(entity, offset, value, changeState, chainOffset); });
 }
 
 /**
@@ -789,13 +844,7 @@ extern "C" PLUGIN_API void SetEntDataEnt(int entityHandle, int offset, int value
  * @return A pointer to the data at the given memory location.
  */
 extern "C" PLUGIN_API void* GetEntDataPtr(int entityHandle, int offset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return nullptr;
-	}
-
-	return GetEntDataPtr2(entity, offset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntDataPtr2(entity, offset); });
 }
 
 /**
@@ -806,13 +855,7 @@ extern "C" PLUGIN_API void* GetEntDataPtr(int entityHandle, int offset) {
  * @param chainOffset The offset of the chain entity in the class (-2 for non-entity classes).
  */
 extern "C" PLUGIN_API void ChangeEntityState(int entityHandle, int offset, int chainOffset) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot change state of '{}' with invalid entity handle: {}\n", offset, entityHandle);
-		return;
-	}
-
-	return ChangeEntityState2(entity, offset, chainOffset);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return ChangeEntityState2(entity, offset, chainOffset); });
 }
 
 //
@@ -828,21 +871,12 @@ extern "C" PLUGIN_API void ChangeEntityState(int entityHandle, int offset, int c
  * @return Size of array (in elements) or 0 if schema is not an array.
  */
 extern "C" PLUGIN_API int GetEntSchemaArraySize2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	const auto field = schema::FindField(entity, className, memberName);
+	if (!field) {
 		return {};
 	}
 
-	const auto elementType = schema::GetElementType(type);
-	switch (elementType) {
-		case schema::ElementType::Array:
-			return static_cast<const CSchemaType_FixedArray*>(type)->m_nElementCount;
-		case schema::ElementType::Collection:
-			return reinterpret_cast<CUtlVector<intptr_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Count();
-		default:
-			return 0;
-	}
+	return schema::GetArrayView(field.Base(), field.key.type, schema::GetFieldKind(field.key.type)).count;
 }
 
 /**
@@ -858,48 +892,12 @@ extern "C" PLUGIN_API int GetEntSchemaArraySize2(CEntityInstance* entity, const 
  * @return A pointer to the field or element, or nullptr if the field is not found or element is out of range.
  */
 extern "C" PLUGIN_API void* GetEntSchemaPtr2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	const auto field = schema::FindField(entity, className, memberName);
+	if (!field) {
 		return nullptr;
 	}
 
-	const intptr_t base = reinterpret_cast<intptr_t>(entity) + offset;
-	int count;
-	intptr_t data;
-	int elementSize;
-
-	switch (schema::GetElementType(type)) {
-		case schema::ElementType::Array: {
-			const auto* arrayType = static_cast<const CSchemaType_FixedArray*>(type);
-			count = arrayType->m_nElementCount;
-			data = base;
-			elementSize = arrayType->m_nElementSize;
-			break;
-		}
-		case schema::ElementType::Collection: {
-			const auto* vec = reinterpret_cast<CUtlVector<uint8>*>(base);
-			count = vec->Count();
-			data = reinterpret_cast<intptr_t>(vec->Base());
-			elementSize = static_cast<const CSchemaType_Atomic_CollectionOfT*>(type)->m_nElementSize;
-			break;
-		}
-		case schema::ElementType::Single:
-			count = 1;
-			data = base;
-			elementSize = 0;
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' has unsupported type '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return nullptr;
-	}
-
-	if (element < 0 || element >= count) {
-		plg::print(LS_WARNING, "Element {} is out of range for '{}::{}' (size: {})\n", element, className, memberName, count);
-		return nullptr;
-	}
-
-	return reinterpret_cast<void*>(data + static_cast<intptr_t>(element) * elementSize);
+	return field.Element(schema::GetFieldKind(field.key.type), element, "supported type");
 }
 
 //
@@ -916,62 +914,7 @@ extern "C" PLUGIN_API void* GetEntSchemaPtr2(CEntityInstance* entity, const plg:
  * @return An integer value at the given schema offset.
  */
 extern "C" PLUGIN_API int64_t GetEntSchema2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return {};
-	}
-
-	const auto [elementType, elementSize] = schema::IsIntType(type);
-	switch (elementType) {
-		case schema::ElementType::Array:
-			switch (elementSize) {
-				case sizeof(int8_t):
-					return reinterpret_cast<int8_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-				case sizeof(int16_t):
-					return reinterpret_cast<int16_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-				case sizeof(int32_t):
-					return reinterpret_cast<int32_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-				case sizeof(int64_t):
-					return reinterpret_cast<int64_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-				default:
-					return 0;
-			}
-			break;
-		case schema::ElementType::Collection:
-			switch (elementSize) {
-				case sizeof(int8_t):
-					return reinterpret_cast<CUtlVector<int8_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-				case sizeof(int16_t):
-					return reinterpret_cast<CUtlVector<int16_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-				case sizeof(int32_t):
-					return reinterpret_cast<CUtlVector<int32_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-				case sizeof(int64_t):
-					return reinterpret_cast<CUtlVector<int64_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-				default:
-					return 0;
-			}
-			break;
-		case schema::ElementType::Single:
-			switch (size) {
-				case sizeof(int8_t):
-					return *reinterpret_cast<int8_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-				case sizeof(int16_t):
-					return *reinterpret_cast<int16_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-				case sizeof(int32_t):
-					return *reinterpret_cast<int32_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-				case sizeof(int64_t):
-					return *reinterpret_cast<int64_t*>(reinterpret_cast<intptr_t>(entity) + offset);
-				default:
-					return 0;
-			}
-			break;
-		case schema::ElementType::Class:
-			return reinterpret_cast<intptr_t>(entity) + offset;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a integer, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return 0;
-	}
+	return schema::GetNumeric<int64_t>(entity, className, memberName, element);
 }
 
 /**
@@ -988,86 +931,7 @@ extern "C" PLUGIN_API int64_t GetEntSchema2(CEntityInstance* entity, const plg::
  * @return An integer value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchema2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int64_t value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
-		return;
-	}
-
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return;
-	}
-
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
-	}
-
-	const auto [elementType, elementSize] = schema::IsIntType(type);
-	switch (elementType) {
-		case schema::ElementType::Array:
-			switch (elementSize) {
-				case sizeof(int8_t):
-					reinterpret_cast<int8_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = static_cast<int8_t>(value);
-					break;
-				case sizeof(int16_t):
-					reinterpret_cast<int16_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = static_cast<int16_t>(value);
-					break;
-				case sizeof(int32_t):
-					reinterpret_cast<int32_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = static_cast<int32_t>(value);
-					break;
-				case sizeof(int64_t):
-					reinterpret_cast<int64_t*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = value;
-					break;
-				default:
-					break;
-			}
-			break;
-		case schema::ElementType::Collection:
-			switch (elementSize) {
-				case sizeof(int8_t):
-					reinterpret_cast<CUtlVector<int8_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = static_cast<int8_t>(value);
-					break;
-				case sizeof(int16_t):
-					reinterpret_cast<CUtlVector<int16_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = static_cast<int16_t>(value);
-					break;
-				case sizeof(int32_t):
-					reinterpret_cast<CUtlVector<int32_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = static_cast<int32_t>(value);
-					break;
-				case sizeof(int64_t):
-					reinterpret_cast<CUtlVector<int64_t>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = value;
-					break;
-				default:
-					break;
-			}
-			break;
-		case schema::ElementType::Single:
-			switch (size) {
-				case sizeof(int8_t):
-					*reinterpret_cast<int8_t*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<int8_t>(value);
-					break;
-				case sizeof(int16_t):
-					*reinterpret_cast<int16_t*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<int16_t>(value);
-					break;
-				case sizeof(int32_t):
-					*reinterpret_cast<int32_t*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<int32_t>(value);
-					break;
-				case sizeof(int64_t):
-					*reinterpret_cast<int64_t*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
-					break;
-				default:
-					break;
-			}
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a integer, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	schema::SetNumeric<int64_t>(entity, className, memberName, value, changeState, element);
 }
 
 //
@@ -1084,48 +948,7 @@ extern "C" PLUGIN_API void SetEntSchema2(CEntityInstance* entity, const plg::str
  * @return A float value at the given schema offset.
  */
 extern "C" PLUGIN_API double GetEntSchemaFloat2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return {};
-	}
-
-	const auto [elementType, elementSize] = schema::IsFloatType(type);
-	switch (elementType) {
-		case schema::ElementType::Array:
-			switch (elementSize) {
-				case sizeof(float):
-					return reinterpret_cast<float*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-				case sizeof(double):
-					return reinterpret_cast<double*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-				default:
-					return 0;
-			}
-			break;
-		case schema::ElementType::Collection:
-			switch (elementSize) {
-				case sizeof(float):
-					return reinterpret_cast<CUtlVector<float>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-				case sizeof(double):
-					return reinterpret_cast<CUtlVector<double>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-				default:
-					return 0;
-			}
-			break;
-		case schema::ElementType::Single:
-			switch (size) {
-				case sizeof(float):
-					return *reinterpret_cast<float*>(reinterpret_cast<intptr_t>(entity) + offset);
-				case sizeof(double):
-					return *reinterpret_cast<double*>(reinterpret_cast<intptr_t>(entity) + offset);
-				default:
-					return 0;
-			}
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a float, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return 0;
-	}
+	return schema::GetNumeric<double>(entity, className, memberName, element);
 }
 
 /**
@@ -1142,71 +965,78 @@ extern "C" PLUGIN_API double GetEntSchemaFloat2(CEntityInstance* entity, const p
  * @return A float value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaFloat2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, double value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
-		return;
-	}
-
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return;
-	}
-
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
-	}
-
-	const auto [elementType, elementSize] = schema::IsFloatType(type);
-	switch (elementType) {
-		case schema::ElementType::Array:
-			switch (elementSize) {
-				case sizeof(float):
-					reinterpret_cast<float*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = static_cast<float>(value);
-					break;
-				case sizeof(double):
-					reinterpret_cast<double*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = value;
-					break;
-				default:
-					break;
-			}
-			break;
-		case schema::ElementType::Collection:
-			switch (elementSize) {
-				case sizeof(float):
-					reinterpret_cast<CUtlVector<float>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = static_cast<float>(value);
-					break;
-				case sizeof(double):
-					reinterpret_cast<CUtlVector<double>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = value;
-					break;
-				default:
-					break;
-			}
-			break;
-		case schema::ElementType::Single:
-			switch (size) {
-				case sizeof(float):
-					*reinterpret_cast<float*>(reinterpret_cast<intptr_t>(entity) + offset) = static_cast<float>(value);
-					break;
-				case sizeof(double):
-					*reinterpret_cast<double*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
-					break;
-				default:
-					break;
-			}
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a float, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	schema::SetNumeric<double>(entity, className, memberName, value, changeState, element);
 }
 
 //
+
+/**
+ * @brief Retrieves all elements of an integer array from an entity's schema.
+ *
+ * Works for fixed arrays and collections (CUtlVector, CNetworkUtlVectorBase, etc.) of integer-like elements.
+ * This function is considered safer and more robust over GetEntDataArray, because it performs strict offset checking and typing rules.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be retrieved.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @return The array elements, or an empty array if the field is not found or is not an integer array.
+ */
+extern "C" PLUGIN_API plg::vector<int64_t> GetEntSchemaArray2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName) {
+	return schema::GetArray<int64_t>(entity, className, memberName);
+}
+
+/**
+ * @brief Sets all elements of an integer array in an entity's schema.
+ *
+ * For fixed arrays writes min(value.size(), array size) elements and leaves the rest untouched.
+ * For collections (CUtlVector, CNetworkUtlVectorBase, etc.) resizes the collection to value.size().
+ * This function is considered safer and more robust over SetEntDataArray, because it performs strict offset checking and typing rules.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be set.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @param value The array elements to set.
+ * @param changeState If true, change will be sent over the network.
+ */
+extern "C" PLUGIN_API void SetEntSchemaArray2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, const plg::vector<int64_t>& value, bool changeState) {
+	schema::SetArray(entity, className, memberName, value, changeState);
+}
+
+//
+
+//
+
+/**
+ * @brief Retrieves all elements of a float array from an entity's schema.
+ *
+ * Works for fixed arrays and collections (CUtlVector, CNetworkUtlVectorBase, etc.) of float elements.
+ * This function is considered safer and more robust over GetEntDataArrayFloat, because it performs strict offset checking and typing rules.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be retrieved.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @return The array elements, or an empty array if the field is not found or is not a float array.
+ */
+extern "C" PLUGIN_API plg::vector<double> GetEntSchemaArrayFloat2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName) {
+	return schema::GetArray<double>(entity, className, memberName);
+}
+
+/**
+ * @brief Sets all elements of a float array in an entity's schema.
+ *
+ * For fixed arrays writes min(value.size(), array size) elements and leaves the rest untouched.
+ * For collections (CUtlVector, CNetworkUtlVectorBase, etc.) resizes the collection to value.size().
+ * This function is considered safer and more robust over SetEntDataArrayFloat, because it performs strict offset checking and typing rules.
+ *
+ * @param entity Pointer to the instance of the class where the value is to be set.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @param value The array elements to set.
+ * @param changeState If true, change will be sent over the network.
+ */
+extern "C" PLUGIN_API void SetEntSchemaArrayFloat2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, const plg::vector<double>& value, bool changeState) {
+	schema::SetArray(entity, className, memberName, value, changeState);
+}
 
 //
 
@@ -1222,42 +1052,23 @@ extern "C" PLUGIN_API void SetEntSchemaFloat2(CEntityInstance* entity, const plg
  * @return A float value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntSchemaColor2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	const auto field = schema::FindField(entity, className, memberName);
+	if (!field) {
 		return {};
 	}
 
-	const auto [elementType, elementSize] = schema::IsIntType(type);
-	switch (elementType) {
-		case schema::ElementType::Array:
-			switch (elementSize) {
-				case sizeof(int):
-					return std::bit_cast<plg::vec4>(reinterpret_cast<Color*>(reinterpret_cast<intptr_t>(entity) + offset)[element].ToVector4D());
-				default:
-					return {};
-			}
-			break;
-		case schema::ElementType::Collection:
-			switch (elementSize) {
-				case sizeof(int):
-					return std::bit_cast<plg::vec4>(reinterpret_cast<CUtlVector<Color>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element).ToVector4D());
-				default:
-					return {};
-			}
-			break;
-		case schema::ElementType::Single:
-			switch (size) {
-				case sizeof(int):
-					return std::bit_cast<plg::vec4>(reinterpret_cast<Color*>(reinterpret_cast<intptr_t>(entity) + offset)->ToVector4D());
-				default:
-					return {};
-			}
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a integer, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return {};
+	const auto sized = schema::MatchInteger(field.key.type);
+	if (schema::SizeOf(sized.storage) != sizeof(Color)) {
+		field.WarnType("color");
+		return {};
 	}
+
+	const auto* ptr = field.Element(sized.type, element, "color");
+	if (!ptr) {
+		return {};
+	}
+
+	return std::bit_cast<plg::vec4>(static_cast<const Color*>(ptr)->ToVector4D());
 }
 
 /**
@@ -1274,59 +1085,24 @@ extern "C" PLUGIN_API plg::vec4 GetEntSchemaColor2(CEntityInstance* entity, cons
  * @return A color value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaColor2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, const plg::vec4& value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
+	const auto field = schema::FindWritableField(entity, className, memberName);
+	if (!field) {
 		return;
 	}
 
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	const auto sized = schema::MatchInteger(field.key.type);
+	if (schema::SizeOf(sized.storage) != sizeof(Color)) {
+		field.WarnType("color");
 		return;
 	}
 
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
+	auto* ptr = field.Element(sized.type, element, "color");
+	if (!ptr) {
+		return;
 	}
 
-	const auto [elementType, elementSize] = schema::IsIntType(type);
-	switch (elementType) {
-		case schema::ElementType::Array:
-			switch (elementSize) {
-				case sizeof(int):
-					reinterpret_cast<Color*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = NewColor(value);
-					break;
-				default:
-					break;
-			}
-			break;
-		case schema::ElementType::Collection:
-			switch (elementSize) {
-				case sizeof(int):
-					reinterpret_cast<CUtlVector<Color>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = NewColor(value);
-					break;
-				default:
-					break;
-			}
-			break;
-		case schema::ElementType::Single:
-			switch (size) {
-				case sizeof(int):
-					*reinterpret_cast<Color*>(reinterpret_cast<intptr_t>(entity) + offset) = NewColor(value);
-					break;
-				default:
-					break;
-			}
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a integer, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	field.NotifyChanged(changeState);
+	*static_cast<Color*>(ptr) = NewColor(value);
 }
 
 //
@@ -1343,46 +1119,43 @@ extern "C" PLUGIN_API void SetEntSchemaColor2(CEntityInstance* entity, const plg
  * @return A string value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::string GetEntSchemaString2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	const auto field = schema::FindField(entity, className, memberName);
+	if (!field) {
 		return {};
 	}
 
-	switch (schema::IsPlainType(type, sizeof(CUtlString))) {
-		case schema::ElementType::Array:
-			return reinterpret_cast<CUtlString*>(reinterpret_cast<intptr_t>(entity) + offset)[element].Get();
-		case schema::ElementType::Collection:
-			return reinterpret_cast<CUtlVector<CUtlString>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element).Get();
-		case schema::ElementType::Single:
-			return reinterpret_cast<CUtlString*>(reinterpret_cast<intptr_t>(entity) + offset)->Get();
-		default:
-			const auto [elementType, elementSize] = schema::IsIntType(type);
-			switch (elementType) {
-				case schema::ElementType::Array:
-					if (elementSize == sizeof(char)) {
-						const char* src = reinterpret_cast<const char*>(reinterpret_cast<intptr_t>(entity) + offset);
-						const std::size_t len = strnlen(src, size);
-						return plg::string(src, len);
-					}
-					break;
-				case schema::ElementType::Collection:
-					if (elementSize == sizeof(char)) {
-						const auto& vec = *reinterpret_cast<CUtlVector<char>*>(reinterpret_cast<intptr_t>(entity) + offset);
-						return plg::string(vec.Base(), static_cast<size_t>(vec.Count()));
-					}
-					break;
-				case schema::ElementType::Single:
-					if (size == sizeof(char)) {
-						return plg::string(1, *reinterpret_cast<char*>(reinterpret_cast<intptr_t>(entity) + offset));
-					}
-					break;
-				default:
-					break;
-			}
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a string, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return {};
+	// CUtlString fields
+	if (schema::MatchPlain(field.key.type, sizeof(CUtlString)) != schema::FieldKind::Invalid) {
+		const auto* ptr = field.Plain<const CUtlString>(element, "string");
+		return ptr ? plg::string(ptr->Get()) : plg::string();
 	}
+
+	// char[N], CUtlVector<char> and char fields
+	const auto [elementType, storage] = schema::MatchInteger(field.key.type);
+	switch (elementType) {
+		case schema::FieldKind::Array:
+			if (schema::SizeOf(storage) == sizeof(char)) {
+				const char* src = reinterpret_cast<const char*>(field.Base());
+				return plg::string(src, strnlen(src, static_cast<size_t>(field.key.size)));
+			}
+			break;
+		case schema::FieldKind::Collection:
+			if (schema::SizeOf(storage) == sizeof(char)) {
+				const auto& vec = *reinterpret_cast<const CUtlVector<char>*>(field.Base());
+				return plg::string(vec.Base(), static_cast<size_t>(vec.Count()));
+			}
+			break;
+		case schema::FieldKind::Single:
+			if (field.key.size == sizeof(char)) {
+				return plg::string(1, *reinterpret_cast<const char*>(field.Base()));
+			}
+			break;
+		default:
+			break;
+	}
+
+	field.WarnType("string");
+	return {};
 }
 
 /**
@@ -1399,66 +1172,52 @@ extern "C" PLUGIN_API plg::string GetEntSchemaString2(CEntityInstance* entity, c
  * @return An string value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaString2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, const plg::string& value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
+	const auto field = schema::FindWritableField(entity, className, memberName);
+	if (!field) {
 		return;
 	}
 
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return;
-	}
-
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
+	// CUtlString fields
+	if (schema::MatchPlain(field.key.type, sizeof(CUtlString)) != schema::FieldKind::Invalid) {
+		if (auto* ptr = field.Plain<CUtlString>(element, "string")) {
+			field.NotifyChanged(changeState);
+			*ptr = value;
 		}
+		return;
 	}
 
-	switch (schema::IsPlainType(type, sizeof(CUtlString))) {
-		case schema::ElementType::Array:
-			reinterpret_cast<CUtlString*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = value;
+	// char[N], CUtlVector<char> and char fields
+	const auto [elementType, storage] = schema::MatchInteger(field.key.type);
+	switch (elementType) {
+		case schema::FieldKind::Array:
+			if (schema::SizeOf(storage) == sizeof(char)) {
+				field.NotifyChanged(changeState);
+				char* dst = reinterpret_cast<char*>(field.Base());
+				const size_t n = std::min(value.size(), static_cast<size_t>(field.key.size - 1));
+				value.copy(dst, n);
+				dst[n] = '\0';
+				return;
+			}
 			break;
-		case schema::ElementType::Collection:
-			reinterpret_cast<CUtlVector<CUtlString>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = value;
+		case schema::FieldKind::Collection:
+			if (schema::SizeOf(storage) == sizeof(char)) {
+				field.NotifyChanged(changeState);
+				reinterpret_cast<CUtlVector<char>*>(field.Base())->CopyArray(value.data(), static_cast<CUtlVector<char>::IndexType_t>(value.size()));
+				return;
+			}
 			break;
-		case schema::ElementType::Single:
-			*reinterpret_cast<CUtlString*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
+		case schema::FieldKind::Single:
+			if (field.key.size == sizeof(char)) {
+				field.NotifyChanged(changeState);
+				*reinterpret_cast<char*>(field.Base()) = value.empty() ? 0 : value.front();
+				return;
+			}
 			break;
 		default:
-			const auto [elementType, elementSize] = schema::IsIntType(type);
-			switch (elementType) {
-				case schema::ElementType::Array:
-					if (elementSize == sizeof(char)) {
-						char* dst = reinterpret_cast<char*>(reinterpret_cast<intptr_t>(entity) + offset);
-						const size_t n = std::min(value.size(), size - 1);
-						value.copy(dst, n);
-						dst[n] = '\0';
-						return;
-					}
-					break;
-				case schema::ElementType::Collection:
-					if (elementSize == sizeof(char)) {
-						reinterpret_cast<CUtlVector<char>*>(reinterpret_cast<intptr_t>(entity) + offset)->CopyArray(value.data(), static_cast<CUtlVector<char>::IndexType_t>(value.size()));
-						return;
-					}
-					break;
-				case schema::ElementType::Single:
-					if (size == sizeof(char)) {
-						*reinterpret_cast<char*>(reinterpret_cast<intptr_t>(entity) + offset) = value.empty() ? 0 : *value.begin();
-						return;
-					}
-					break;
-				default:
-					break;
-			}
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a string, but '{}'\n", className, memberName, type->m_sTypeName.Get());
 			break;
 	}
+
+	field.WarnType("string");
 }
 
 //
@@ -1475,23 +1234,7 @@ extern "C" PLUGIN_API void SetEntSchemaString2(CEntityInstance* entity, const pl
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec3 GetEntSchemaVector3D2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return {};
-	}
-
-	switch (schema::IsPlainType(type, sizeof(Vector))) {
-		case schema::ElementType::Array:
-			return reinterpret_cast<plg::vec3*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-		case schema::ElementType::Collection:
-			return reinterpret_cast<CUtlVector<plg::vec3>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-		case schema::ElementType::Single:
-			return *reinterpret_cast<plg::vec3*>(reinterpret_cast<intptr_t>(entity) + offset);
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a vector, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return {};
-	}
+	return schema::GetPlain<plg::vec3, sizeof(Vector)>(entity, className, memberName, element, "vector");
 }
 
 /**
@@ -1508,40 +1251,7 @@ extern "C" PLUGIN_API plg::vec3 GetEntSchemaVector3D2(CEntityInstance* entity, c
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaVector3D2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, const plg::vec3& value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
-		return;
-	}
-
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return;
-	}
-
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
-	}
-
-	switch (schema::IsPlainType(type, sizeof(Vector))) {
-		case schema::ElementType::Array:
-			reinterpret_cast<plg::vec3*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = value;
-			break;
-		case schema::ElementType::Collection:
-			reinterpret_cast<CUtlVector<plg::vec3>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = value;
-			break;
-		case schema::ElementType::Single:
-			*reinterpret_cast<plg::vec3*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a vector, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	schema::SetPlain<plg::vec3, sizeof(Vector)>(entity, className, memberName, value, changeState, element, "vector");
 }
 
 //
@@ -1558,23 +1268,7 @@ extern "C" PLUGIN_API void SetEntSchemaVector3D2(CEntityInstance* entity, const 
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec2 GetEntSchemaVector2D2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return {};
-	}
-
-	switch (schema::IsPlainType(type, sizeof(Vector2D))) {
-		case schema::ElementType::Array:
-			return reinterpret_cast<plg::vec2*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-		case schema::ElementType::Collection:
-			return reinterpret_cast<CUtlVector<plg::vec2>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-		case schema::ElementType::Single:
-			return *reinterpret_cast<plg::vec2*>(reinterpret_cast<intptr_t>(entity) + offset);
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a vector, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return {};
-	}
+	return schema::GetPlain<plg::vec2, sizeof(Vector2D)>(entity, className, memberName, element, "vector");
 }
 
 //
@@ -1593,40 +1287,7 @@ extern "C" PLUGIN_API plg::vec2 GetEntSchemaVector2D2(CEntityInstance* entity, c
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaVector2D2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, const plg::vec2& value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
-		return;
-	}
-
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return;
-	}
-
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
-	}
-
-	switch (schema::IsPlainType(type, sizeof(Vector2D))) {
-		case schema::ElementType::Array:
-			reinterpret_cast<plg::vec2*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = value;
-			break;
-		case schema::ElementType::Collection:
-			reinterpret_cast<CUtlVector<plg::vec2>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = value;
-			break;
-		case schema::ElementType::Single:
-			*reinterpret_cast<plg::vec2*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a vector, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	schema::SetPlain<plg::vec2, sizeof(Vector2D)>(entity, className, memberName, value, changeState, element, "vector");
 }
 
 //
@@ -1643,23 +1304,7 @@ extern "C" PLUGIN_API void SetEntSchemaVector2D2(CEntityInstance* entity, const 
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntSchemaVector4D2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return {};
-	}
-
-	switch (schema::IsPlainType(type, sizeof(Vector4D))) {
-		case schema::ElementType::Array:
-			return reinterpret_cast<plg::vec4*>(reinterpret_cast<intptr_t>(entity) + offset)[element];
-		case schema::ElementType::Collection:
-			return reinterpret_cast<CUtlVector<plg::vec4>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element);
-		case schema::ElementType::Single:
-			return *reinterpret_cast<plg::vec4*>(reinterpret_cast<intptr_t>(entity) + offset);
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a vector, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return {};
-	}
+	return schema::GetPlain<plg::vec4, sizeof(Vector4D)>(entity, className, memberName, element, "vector");
 }
 
 /**
@@ -1676,40 +1321,7 @@ extern "C" PLUGIN_API plg::vec4 GetEntSchemaVector4D2(CEntityInstance* entity, c
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaVector4D2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, const plg::vec4& value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
-		return;
-	}
-
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
-		return;
-	}
-
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
-	}
-
-	switch (schema::IsPlainType(type, sizeof(Vector4D))) {
-		case schema::ElementType::Array:
-			reinterpret_cast<plg::vec4*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = value;
-			break;
-		case schema::ElementType::Collection:
-			reinterpret_cast<CUtlVector<plg::vec4>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = value;
-			break;
-		case schema::ElementType::Single:
-			*reinterpret_cast<plg::vec4*>(reinterpret_cast<intptr_t>(entity) + offset) = value;
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a vector, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	schema::SetPlain<plg::vec4, sizeof(Vector4D)>(entity, className, memberName, value, changeState, element, "vector");
 }
 
 //
@@ -1728,23 +1340,13 @@ extern "C" PLUGIN_API void SetEntSchemaVector4D2(CEntityInstance* entity, const 
  * @return A string value at the given schema offset.
  */
 extern "C" PLUGIN_API int GetEntSchemaEnt2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	const auto field = schema::FindField(entity, className, memberName);
+	if (!field) {
 		return INVALID_EHANDLE_INDEX;
 	}
 
-	switch (schema::IsAtomicType(type, sizeof(CEntityHandle))) {
-		case schema::ElementType::Array:
-			return reinterpret_cast<CEntityHandle*>(reinterpret_cast<intptr_t>(entity) + offset)[element].ToInt();
-		case schema::ElementType::Collection:
-			return reinterpret_cast<CUtlVector<CEntityHandle>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element).ToInt();
-		case schema::ElementType::Single:
-			return reinterpret_cast<CEntityHandle*>(reinterpret_cast<intptr_t>(entity) + offset)->ToInt();
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a entity handle, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			return INVALID_EHANDLE_INDEX;
-	}
+	const auto* ptr = field.Atomic<const CEntityHandle>(element, "entity handle");
+	return ptr ? ptr->ToInt() : INVALID_EHANDLE_INDEX;
 }
 
 /**
@@ -1763,40 +1365,18 @@ extern "C" PLUGIN_API int GetEntSchemaEnt2(CEntityInstance* entity, const plg::s
  * @return An entity handle at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaEnt2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int value, bool changeState, int element) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
+	const auto field = schema::FindWritableField(entity, className, memberName);
+	if (!field) {
 		return;
 	}
 
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	auto* ptr = field.Atomic<CEntityHandle>(element, "entity handle");
+	if (!ptr) {
 		return;
 	}
 
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
-	}
-
-	switch (schema::IsAtomicType(type, sizeof(CEntityHandle))) {
-		case schema::ElementType::Array:
-			reinterpret_cast<CEntityHandle*>(reinterpret_cast<intptr_t>(entity) + offset)[element] = CEntityHandle(value);
-			break;
-		case schema::ElementType::Collection:
-			reinterpret_cast<CUtlVector<CEntityHandle>*>(reinterpret_cast<intptr_t>(entity) + offset)->Element(element) = CEntityHandle(value);
-			break;
-		case schema::ElementType::Single:
-			*reinterpret_cast<CEntityHandle*>(reinterpret_cast<intptr_t>(entity) + offset) = CEntityHandle(value);
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a entity handle, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	field.NotifyChanged(changeState);
+	*ptr = CEntityHandle(value);
 }
 
 /***
@@ -1816,40 +1396,18 @@ extern "C" PLUGIN_API void SetEntSchemaEnt2(CEntityInstance* entity, const plg::
  * @param changeState If true, change will be sent over the network.
  */
 extern "C" PLUGIN_API void PushEntSchemaEnt2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int value, bool changeState) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot push into '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
+	const auto field = schema::FindWritableField(entity, className, memberName, "push into");
+	if (!field) {
 		return;
 	}
 
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	if (schema::MatchAtomic(field.key.type, sizeof(CEntityHandle)) != schema::FieldKind::Collection) {
+		field.WarnType("collection of entity handles");
 		return;
 	}
 
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
-	}
-
-	switch (schema::IsAtomicType(type, sizeof(CEntityHandle))) {
-		case schema::ElementType::Collection: {
-			auto* vec = reinterpret_cast<CUtlVector<CEntityHandle>*>(reinterpret_cast<intptr_t>(entity) + offset);
-			vec->AddToTail(CEntityHandle(value));
-			break;
-		}
-		case schema::ElementType::Array:
-		case schema::ElementType::Single:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a collection of entity handles and cannot be pushed into.\n", className, memberName);
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a entity handle, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	field.NotifyChanged(changeState);
+	reinterpret_cast<CUtlVector<CEntityHandle>*>(field.Base())->AddToTail(CEntityHandle(value));
 }
 
 /**
@@ -1869,44 +1427,24 @@ extern "C" PLUGIN_API void PushEntSchemaEnt2(CEntityInstance* entity, const plg:
  * @param changeState If true, change will be sent over the network.
  */
 extern "C" PLUGIN_API void EraseEntSchemaEnt2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName, int element, bool changeState) {
-	if (g_pCoreConfig->FollowCS2ServerGuidelines && schema::CS2BadList.contains(memberName)) {
-		plg::print(LS_WARNING, "Cannot erase from '{}::{}' with \"FollowCS2ServerGuidelines\" option enabled.\n", className, memberName);
+	const auto field = schema::FindWritableField(entity, className, memberName, "erase from");
+	if (!field) {
 		return;
 	}
 
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (offset == -1) {
-		plg::print(LS_WARNING, "Cannot find offset for '{}::{}' with entity pointer: {}\n", className, memberName, static_cast<const void*>(entity));
+	if (schema::MatchAtomic(field.key.type, sizeof(CEntityHandle)) != schema::FieldKind::Collection) {
+		field.WarnType("collection of entity handles");
 		return;
 	}
 
-	if (changeState) {
-		if (networked) {
-			const auto chainOffset = schema::FindChainOffset(className);
-			SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-		} else {
-			plg::print(LS_WARNING, "Schema field '{}::{}' cannot be send over network\n", className, memberName);
-		}
+	auto* vec = reinterpret_cast<CUtlVector<CEntityHandle>*>(field.Base());
+	if (element < 0 || element >= vec->Count()) {
+		plg::print(LS_WARNING, "Element {} is out of range for '{}::{}' (size: {})\n", element, className, memberName, vec->Count());
+		return;
 	}
 
-	switch (schema::IsAtomicType(type, sizeof(CEntityHandle))) {
-		case schema::ElementType::Collection: {
-			auto* vec = reinterpret_cast<CUtlVector<CEntityHandle>*>(reinterpret_cast<intptr_t>(entity) + offset);
-			if (element < 0 || element >= vec->Count()) {
-				plg::print(LS_WARNING, "Index '{}' is out of range for schema collection '{}::{}' (size = {}).\n", element, className, memberName, vec->Count());
-				return;
-			}
-			vec->Remove(element);
-			break;
-		}
-		case schema::ElementType::Array:
-		case schema::ElementType::Single:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a collection of entity handles and cannot erase by index.\n", className, memberName);
-			break;
-		default:
-			plg::print(LS_WARNING, "Schema field '{}::{}' is not a entity handle, but '{}'\n", className, memberName, type->m_sTypeName.Get());
-			break;
-	}
+	field.NotifyChanged(changeState);
+	vec->Remove(element);
 }
 
 //
@@ -1924,12 +1462,8 @@ extern "C" PLUGIN_API void EraseEntSchemaEnt2(CEntityInstance* entity, const plg
  * @param memberName The name of the member to be set.
  */
 extern "C" PLUGIN_API void NetworkStateChanged2(CEntityInstance* entity, const plg::string& className, const plg::string& memberName) {
-	const auto [offset, networked, size, type] = schema::GetOffset(className, memberName);
-	if (networked) {
-		const auto chainOffset = schema::FindChainOffset(className);
-		SafeNetworkStateChanged(reinterpret_cast<intptr_t>(entity), offset, chainOffset);
-	} else {
-		plg::print(LS_WARNING, "Field '{}::{}' is not networked, but \"SetStateChanged\" was called on it.", className, memberName);
+	if (const auto field = schema::FindField(entity, className, memberName)) {
+		field.NotifyChanged(true);
 	}
 }
 
@@ -1951,13 +1485,7 @@ extern "C" PLUGIN_API void NetworkStateChanged2(CEntityInstance* entity, const p
  * @return Size of array (in elements) or 0 if schema is not an array.
  */
 extern "C" PLUGIN_API int GetEntSchemaArraySize(int entityHandle, const plg::string& className, const plg::string& memberName) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchemaArraySize2(entity, className, memberName);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaArraySize2(entity, className, memberName); });
 }
 
 /**
@@ -1973,13 +1501,7 @@ extern "C" PLUGIN_API int GetEntSchemaArraySize(int entityHandle, const plg::str
  * @return A pointer to the field or element, or nullptr if the field is not found or element is out of range.
  */
 extern "C" PLUGIN_API void* GetEntSchemaPtr(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot get '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return nullptr;
-	}
-
-	return GetEntSchemaPtr2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaPtr2(entity, className, memberName, element); });
 }
 
 //
@@ -1996,13 +1518,7 @@ extern "C" PLUGIN_API void* GetEntSchemaPtr(int entityHandle, const plg::string&
  * @return An integer value at the given schema offset.
  */
 extern "C" PLUGIN_API int64_t GetEntSchema(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchema2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchema2(entity, className, memberName, element); });
 }
 
 /**
@@ -2019,13 +1535,7 @@ extern "C" PLUGIN_API int64_t GetEntSchema(int entityHandle, const plg::string& 
  * @return An integer value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchema(int entityHandle, const plg::string& className, const plg::string& memberName, int64_t value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	SetEntSchema2(entity, className, memberName, value, changeState, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchema2(entity, className, memberName, value, changeState, element); });
 }
 
 //
@@ -2042,13 +1552,7 @@ extern "C" PLUGIN_API void SetEntSchema(int entityHandle, const plg::string& cla
  * @return A float value at the given schema offset.
  */
 extern "C" PLUGIN_API double GetEntSchemaFloat(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchemaFloat2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaFloat2(entity, className, memberName, element); });
 }
 
 /**
@@ -2065,13 +1569,75 @@ extern "C" PLUGIN_API double GetEntSchemaFloat(int entityHandle, const plg::stri
  * @return A float value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaFloat(int entityHandle, const plg::string& className, const plg::string& memberName, double value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaFloat2(entity, className, memberName, value, changeState, element); });
+}
 
-	SetEntSchemaFloat2(entity, className, memberName, value, changeState, element);
+//
+
+/**
+ * @brief Retrieves all elements of an integer array from an entity's schema.
+ *
+ * Works for fixed arrays and collections (CUtlVector, CNetworkUtlVectorBase, etc.) of integer-like elements.
+ * This function is considered safer and more robust over GetEntDataArray, because it performs strict offset checking and typing rules.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be retrieved.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @return The array elements, or an empty array if the field is not found or is not an integer array.
+ */
+extern "C" PLUGIN_API plg::vector<int64_t> GetEntSchemaArray(int entityHandle, const plg::string& className, const plg::string& memberName) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaArray2(entity, className, memberName); });
+}
+
+/**
+ * @brief Sets all elements of an integer array in an entity's schema.
+ *
+ * For fixed arrays writes min(value.size(), array size) elements and leaves the rest untouched.
+ * For collections (CUtlVector, CNetworkUtlVectorBase, etc.) resizes the collection to value.size().
+ * This function is considered safer and more robust over SetEntDataArray, because it performs strict offset checking and typing rules.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be set.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @param value The array elements to set.
+ * @param changeState If true, change will be sent over the network.
+ */
+extern "C" PLUGIN_API void SetEntSchemaArray(int entityHandle, const plg::string& className, const plg::string& memberName, const plg::vector<int64_t>& value, bool changeState) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaArray2(entity, className, memberName, value, changeState); });
+}
+
+//
+
+/**
+ * @brief Retrieves all elements of a float array from an entity's schema.
+ *
+ * Works for fixed arrays and collections (CUtlVector, CNetworkUtlVectorBase, etc.) of float elements.
+ * This function is considered safer and more robust over GetEntDataArrayFloat, because it performs strict offset checking and typing rules.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be retrieved.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @return The array elements, or an empty array if the field is not found or is not a float array.
+ */
+extern "C" PLUGIN_API plg::vector<double> GetEntSchemaArrayFloat(int entityHandle, const plg::string& className, const plg::string& memberName) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaArrayFloat2(entity, className, memberName); });
+}
+
+/**
+ * @brief Sets all elements of a float array in an entity's schema.
+ *
+ * For fixed arrays writes min(value.size(), array size) elements and leaves the rest untouched.
+ * For collections (CUtlVector, CNetworkUtlVectorBase, etc.) resizes the collection to value.size().
+ * This function is considered safer and more robust over SetEntDataArrayFloat, because it performs strict offset checking and typing rules.
+ *
+ * @param entityHandle The handle of the entity from which the value is to be set.
+ * @param className The name of the class.
+ * @param memberName The name of the schema member.
+ * @param value The array elements to set.
+ * @param changeState If true, change will be sent over the network.
+ */
+extern "C" PLUGIN_API void SetEntSchemaArrayFloat(int entityHandle, const plg::string& className, const plg::string& memberName, const plg::vector<double>& value, bool changeState) {
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaArrayFloat2(entity, className, memberName, value, changeState); });
 }
 
 //
@@ -2088,13 +1654,7 @@ extern "C" PLUGIN_API void SetEntSchemaFloat(int entityHandle, const plg::string
  * @return A color value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntSchemaColor(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchemaColor2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaColor2(entity, className, memberName, element); });
 }
 
 /**
@@ -2111,13 +1671,7 @@ extern "C" PLUGIN_API plg::vec4 GetEntSchemaColor(int entityHandle, const plg::s
  * @return A color value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaColor(int entityHandle, const plg::string& className, const plg::string& memberName, const plg::vec4& value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	SetEntSchemaColor2(entity, className, memberName, value, changeState, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaColor2(entity, className, memberName, value, changeState, element); });
 }
 
 //
@@ -2134,13 +1688,7 @@ extern "C" PLUGIN_API void SetEntSchemaColor(int entityHandle, const plg::string
  * @return A string value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::string GetEntSchemaString(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchemaString2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaString2(entity, className, memberName, element); });
 }
 
 /**
@@ -2157,13 +1705,7 @@ extern "C" PLUGIN_API plg::string GetEntSchemaString(int entityHandle, const plg
  * @return An string value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaString(int entityHandle, const plg::string& className, const plg::string& memberName, const plg::string& value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	SetEntSchemaString2(entity, className, memberName, value, changeState, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaString2(entity, className, memberName, value, changeState, element); });
 }
 
 //
@@ -2180,13 +1722,7 @@ extern "C" PLUGIN_API void SetEntSchemaString(int entityHandle, const plg::strin
  * @return A string value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec3 GetEntSchemaVector3D(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchemaVector3D2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaVector3D2(entity, className, memberName, element); });
 }
 
 /**
@@ -2203,13 +1739,7 @@ extern "C" PLUGIN_API plg::vec3 GetEntSchemaVector3D(int entityHandle, const plg
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaVector3D(int entityHandle, const plg::string& className, const plg::string& memberName, const plg::vec3& value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	SetEntSchemaVector3D2(entity, className, memberName, value, changeState, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaVector3D2(entity, className, memberName, value, changeState, element); });
 }
 
 //
@@ -2226,13 +1756,7 @@ extern "C" PLUGIN_API void SetEntSchemaVector3D(int entityHandle, const plg::str
  * @return A string value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec2 GetEntSchemaVector2D(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchemaVector2D2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaVector2D2(entity, className, memberName, element); });
 }
 
 /**
@@ -2249,13 +1773,7 @@ extern "C" PLUGIN_API plg::vec2 GetEntSchemaVector2D(int entityHandle, const plg
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaVector2D(int entityHandle, const plg::string& className, const plg::string& memberName, const plg::vec2& value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	SetEntSchemaVector2D2(entity, className, memberName, value, changeState, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaVector2D2(entity, className, memberName, value, changeState, element); });
 }
 
 //
@@ -2272,13 +1790,7 @@ extern "C" PLUGIN_API void SetEntSchemaVector2D(int entityHandle, const plg::str
  * @return A string value at the given schema offset.
  */
 extern "C" PLUGIN_API plg::vec4 GetEntSchemaVector4D(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return {};
-	}
-
-	return GetEntSchemaVector4D2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return GetEntSchemaVector4D2(entity, className, memberName, element); });
 }
 
 /**
@@ -2295,13 +1807,7 @@ extern "C" PLUGIN_API plg::vec4 GetEntSchemaVector4D(int entityHandle, const plg
  * @return A vector value at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaVector4D(int entityHandle, const plg::string& className, const plg::string& memberName, const plg::vec4& value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	SetEntSchemaVector4D2(entity, className, memberName, value, changeState, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaVector4D2(entity, className, memberName, value, changeState, element); });
 }
 
 //
@@ -2320,13 +1826,7 @@ extern "C" PLUGIN_API void SetEntSchemaVector4D(int entityHandle, const plg::str
  * @return A string value at the given schema offset.
  */
 extern "C" PLUGIN_API int GetEntSchemaEnt(int entityHandle, const plg::string& className, const plg::string& memberName, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return INVALID_EHANDLE_INDEX;
-	}
-
-	return GetEntSchemaEnt2(entity, className, memberName, element);
+	return helpers::WithEntity(entityHandle, static_cast<int>(INVALID_EHANDLE_INDEX), [&](CEntityInstance* entity) { return GetEntSchemaEnt2(entity, className, memberName, element); });
 }
 
 /**
@@ -2345,13 +1845,7 @@ extern "C" PLUGIN_API int GetEntSchemaEnt(int entityHandle, const plg::string& c
  * @return An entity handle at the given schema offset.
  */
 extern "C" PLUGIN_API void SetEntSchemaEnt(int entityHandle, const plg::string& className, const plg::string& memberName, int value, bool changeState, int element) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot set '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	SetEntSchemaEnt2(entity, className, memberName, value, changeState, element);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return SetEntSchemaEnt2(entity, className, memberName, value, changeState, element); });
 }
 
 /**
@@ -2368,13 +1862,7 @@ extern "C" PLUGIN_API void SetEntSchemaEnt(int entityHandle, const plg::string& 
  * @param changeState If true, change will be sent over the network.
  */
 extern "C" PLUGIN_API void PushEntSchemaEnt(int entityHandle, const plg::string& className, const plg::string& memberName, int value, bool changeState) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot push into '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	PushEntSchemaEnt2(entity, className, memberName, value, changeState);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return PushEntSchemaEnt2(entity, className, memberName, value, changeState); });
 }
 
 /**
@@ -2391,13 +1879,7 @@ extern "C" PLUGIN_API void PushEntSchemaEnt(int entityHandle, const plg::string&
  * @param changeState If true, change will be sent over the network.
  */
 extern "C" PLUGIN_API void EraseEntSchemaEnt(int entityHandle, const plg::string& className, const plg::string& memberName, int element, bool changeState) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot erase from '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	EraseEntSchemaEnt2(entity, className, memberName, element, changeState);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return EraseEntSchemaEnt2(entity, className, memberName, element, changeState); });
 }
 
 //
@@ -2415,13 +1897,7 @@ extern "C" PLUGIN_API void EraseEntSchemaEnt(int entityHandle, const plg::string
  * @param memberName The name of the member to be set.
  */
 extern "C" PLUGIN_API void NetworkStateChanged(int entityHandle, const plg::string& className, const plg::string& memberName) {
-	CEntityInstance* entity = g_pGameEntitySystem->GetEntityInstance(CEntityHandle(entityHandle));
-	if (!entity) {
-		plg::print(LS_WARNING, "Cannot change state of '{}::{}' with invalid entity handle: {}\n", className, memberName, entityHandle);
-		return;
-	}
-
-	NetworkStateChanged2(entity, className, memberName);
+	return helpers::WithEntity(entityHandle, [&](CEntityInstance* entity) { return NetworkStateChanged2(entity, className, memberName); });
 }
 
 //

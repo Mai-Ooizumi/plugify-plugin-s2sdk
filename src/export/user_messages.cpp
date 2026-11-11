@@ -2,6 +2,10 @@
 #include <core/user_message.hpp>
 #include <core/user_message_manager.hpp>
 #include <engine/igameeventsystem.h>
+#include <netmessages.pb.h>
+#include <serversideclient.h>
+#include <core/sdk/utils.hpp>
+#include <core/player_manager.hpp>
 
 PLUGIFY_WARN_PUSH()
 
@@ -49,6 +53,205 @@ extern "C" PLUGIN_API bool HookSendNetMessage(SendNetMessageHookCallback callbac
  */
 extern "C" PLUGIN_API bool UnhookSendNetMessage(SendNetMessageHookCallback callback) {
 	return g_UserMessageManager.UnhookSendNetMessage(callback);
+}
+
+/**
+ * @brief Hooks every voice packet a client sends, before the engine passes it on. The packet can be changed or blocked.
+ *
+ * @param callback The callback function to invoke. Handled or Stop blocks the packet for everyone, Stop also skips the remaining callbacks.
+ * @return True if the hook was successfully added, false otherwise.
+ */
+extern "C" PLUGIN_API bool HookClientVoiceData(ClientVoiceDataHookCallback callback) {
+	return g_UserMessageManager.HookClientVoiceData(callback);
+}
+
+/**
+ * @brief Unhooks a previously hooked callback from HookClientVoiceData.
+ *
+ * @param callback The callback function to remove.
+ * @return True if the hook was successfully removed, false otherwise.
+ */
+extern "C" PLUGIN_API bool UnhookClientVoiceData(ClientVoiceDataHookCallback callback) {
+	return g_UserMessageManager.UnhookClientVoiceData(callback);
+}
+
+/**
+ * @brief Gets the codec of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @return The voice data format.
+ */
+extern "C" PLUGIN_API int VoiceDataGetFormat(const CCLCMsg_VoiceData* voiceData) {
+	return voiceData ? voiceData->audio().format() : VOICEDATA_FORMAT_STEAM;
+}
+
+/**
+ * @brief Sets the codec of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @param format The voice data format.
+ */
+extern "C" PLUGIN_API void VoiceDataSetFormat(CCLCMsg_VoiceData* voiceData, int format) {
+	if (voiceData && VoiceDataFormat_t_IsValid(format)) voiceData->mutable_audio()->set_format(static_cast<VoiceDataFormat_t>(format));
+}
+
+/**
+ * @brief Gets the compressed audio of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @return The compressed audio bytes.
+ */
+extern "C" PLUGIN_API plg::vector<uint8_t> VoiceDataGetAudio(const CCLCMsg_VoiceData* voiceData) {
+	if (!voiceData) return {};
+	const std::string& audio = voiceData->audio().voice_data();
+	return plg::vector<uint8_t>(audio.begin(), audio.end());
+}
+
+/**
+ * @brief Replaces the compressed audio of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @param audio The compressed audio bytes.
+ */
+extern "C" PLUGIN_API void VoiceDataSetAudio(CCLCMsg_VoiceData* voiceData, const plg::vector<uint8_t>& audio) {
+	if (voiceData) voiceData->mutable_audio()->set_voice_data(audio.data(), audio.size());
+}
+
+/**
+ * @brief Gets the sample rate of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @return The sample rate in Hz.
+ */
+extern "C" PLUGIN_API uint32_t VoiceDataGetSampleRate(const CCLCMsg_VoiceData* voiceData) {
+	return voiceData ? voiceData->audio().sample_rate() : 0;
+}
+
+/**
+ * @brief Sets the sample rate of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @param sampleRate The sample rate in Hz.
+ */
+extern "C" PLUGIN_API void VoiceDataSetSampleRate(CCLCMsg_VoiceData* voiceData, uint32_t sampleRate) {
+	if (voiceData) voiceData->mutable_audio()->set_sample_rate(sampleRate);
+}
+
+/**
+ * @brief Gets the number of codec packets in a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @return The number of codec packets.
+ */
+extern "C" PLUGIN_API uint32_t VoiceDataGetNumPackets(const CCLCMsg_VoiceData* voiceData) {
+	return voiceData ? voiceData->audio().num_packets() : 0;
+}
+
+/**
+ * @brief Sets the number of codec packets in a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @param numPackets The number of codec packets.
+ */
+extern "C" PLUGIN_API void VoiceDataSetNumPackets(CCLCMsg_VoiceData* voiceData, uint32_t numPackets) {
+	if (voiceData) voiceData->mutable_audio()->set_num_packets(numPackets);
+}
+
+/**
+ * @brief Gets the offsets of the codec packets inside the audio of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @return The packet offsets in bytes.
+ */
+extern "C" PLUGIN_API plg::vector<uint32_t> VoiceDataGetPacketOffsets(const CCLCMsg_VoiceData* voiceData) {
+	if (!voiceData) return {};
+	const auto& offsets = voiceData->audio().packet_offsets();
+	return plg::vector<uint32_t>(offsets.begin(), offsets.end());
+}
+
+/**
+ * @brief Replaces the offsets of the codec packets inside the audio of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @param offsets The packet offsets in bytes.
+ */
+extern "C" PLUGIN_API void VoiceDataSetPacketOffsets(CCLCMsg_VoiceData* voiceData, const plg::vector<uint32_t>& offsets) {
+	if (!voiceData) return;
+	auto* repeated = voiceData->mutable_audio()->mutable_packet_offsets();
+	repeated->Clear();
+	repeated->Add(offsets.begin(), offsets.end());
+}
+
+/**
+ * @brief Gets the voice level the client reported for a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @return The voice level.
+ */
+extern "C" PLUGIN_API float VoiceDataGetVoiceLevel(const CCLCMsg_VoiceData* voiceData) {
+	return voiceData ? voiceData->audio().voice_level() : 0.0f;
+}
+
+/**
+ * @brief Sets the voice level of a voice packet.
+ *
+ * @param voiceData The voice packet from HookClientVoiceData.
+ * @param voiceLevel The voice level.
+ */
+extern "C" PLUGIN_API void VoiceDataSetVoiceLevel(CCLCMsg_VoiceData* voiceData, float voiceLevel) {
+	if (voiceData) voiceData->mutable_audio()->set_voice_level(voiceLevel);
+}
+
+/**
+ * @brief Sends Opus voice frames to clients as if a player was talking.
+ *
+ * @param recipients The slots of the players who receive the voice.
+ * @param speakerSlot The slot of the player shown as talking, or -1 for none.
+ * @param audio Raw Opus packets encoded at 48 kHz, written back to back without a container (no Ogg) or length prefixes. Frame boundaries are given by packetOffsets.
+ * @param packetOffsets For every Opus packet in audio, the byte offset where it ends, in ascending order; the last offset equals the size of audio. Example: packets of 60, 55 and 62 bytes give [60, 115, 177].
+ * @param sectionNumber A number that grows with every call while one stream plays.
+ * @return True if the voice was sent to at least one client, false otherwise.
+ */
+extern "C" PLUGIN_API bool SendVoiceData(const plg::vector<int>& recipients, int speakerSlot, const plg::vector<uint8_t>& audio, const plg::vector<uint32_t>& packetOffsets, uint32_t sectionNumber) {
+	if (audio.empty() || packetOffsets.empty()) {
+		return false;
+	}
+
+	INetworkMessageInternal* netMsg = g_pNetworkMessages->FindNetworkMessagePartial("CSVCMsg_VoiceData");
+	if (!netMsg) {
+		return false;
+	}
+
+	auto* data = netMsg->AllocateMessage()->As<CSVCMsg_VoiceData_t>();
+	auto* voice = data->mutable_audio();
+	voice->set_format(VOICEDATA_FORMAT_OPUS);
+	voice->set_sample_rate(48000);
+	voice->set_voice_data(audio.data(), audio.size());
+	voice->set_num_packets(static_cast<uint32_t>(packetOffsets.size()));
+	for (uint32_t offset : packetOffsets) {
+		voice->add_packet_offsets(offset);
+	}
+	voice->set_section_number(sectionNumber);
+	voice->set_sequence_bytes(0);
+
+	if (speakerSlot >= 0) {
+		data->set_client_deprecated(speakerSlot);
+		data->set_entity(speakerSlot + 1);
+		if (auto player = g_PlayerManager.ToPlayer(CPlayerSlot(speakerSlot))) {
+			data->set_xuid(player->GetSteamId().ConvertToUint64());
+		}
+	}
+
+	bool sent = false;
+	for (int slot : recipients) {
+		auto* client = utils::GetClientBySlot(CPlayerSlot(slot));
+		if (client && !client->IsFakeClient() && client->IsActive()) {
+			sent |= client->SendNetMessage(data, BUF_VOICE);
+		}
+	}
+
+	delete data;
+	return sent;
 }
 
 /**

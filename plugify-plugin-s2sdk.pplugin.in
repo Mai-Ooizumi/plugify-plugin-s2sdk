@@ -10015,24 +10015,6 @@
       }
     },
     {
-      "name": "GetBodySequence",
-      "group": "Bodies",
-      "description": "Retrieves the currently active sequence of the entity.",
-      "funcName": "GetBodySequence",
-      "paramTypes": [
-        {
-          "name": "entityHandle",
-          "type": "int32",
-          "ref": false,
-          "description": "The handle of the entity."
-        }
-      ],
-      "retType": {
-        "type": "int32",
-        "description": "The sequence ID of the active sequence, or -1 if invalid."
-      }
-    },
-    {
       "name": "IsBodyAttachedToParent",
       "group": "Bodies",
       "description": "Checks whether the entity is attached to a parent.",
@@ -10048,54 +10030,6 @@
       "retType": {
         "type": "bool",
         "description": "True if attached to a parent, false otherwise."
-      }
-    },
-    {
-      "name": "LookupBodySequence",
-      "group": "Bodies",
-      "description": "Looks up a sequence ID by its name.",
-      "funcName": "LookupBodySequence",
-      "paramTypes": [
-        {
-          "name": "entityHandle",
-          "type": "int32",
-          "ref": false,
-          "description": "The handle of the entity."
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "ref": false,
-          "description": "The name of the sequence."
-        }
-      ],
-      "retType": {
-        "type": "int32",
-        "description": "The sequence ID, or -1 if not found."
-      }
-    },
-    {
-      "name": "SetBodySequenceDuration",
-      "group": "Bodies",
-      "description": "Retrieves the duration of a specified sequence.",
-      "funcName": "SetBodySequenceDuration",
-      "paramTypes": [
-        {
-          "name": "entityHandle",
-          "type": "int32",
-          "ref": false,
-          "description": "The handle of the entity."
-        },
-        {
-          "name": "sequenceName",
-          "type": "string",
-          "ref": false,
-          "description": "The name of the sequence."
-        }
-      ],
-      "retType": {
-        "type": "float",
-        "description": "The duration of the sequence in seconds, or 0 if invalid."
       }
     },
     {
@@ -13435,7 +13369,7 @@
     {
       "name": "ServerCommandEx",
       "group": "Commands",
-      "description": "Executes a server command as if it were on the server console (or RCON) and stores the printed text into buffer.",
+      "description": "Executes a server command right away as if it were on the server console (or RCON) and returns the printed text. Console commands and convars only: commands are split on ';' and new lines, aliases are not expanded.",
       "funcName": "ServerCommandEx",
       "paramTypes": [
         {
@@ -22211,29 +22145,6 @@
       }
     },
     {
-      "name": "SetEntityLightGroup",
-      "group": "Models",
-      "description": "Sets the light group of an entity.",
-      "funcName": "SetEntityLightGroup",
-      "paramTypes": [
-        {
-          "name": "entityHandle",
-          "type": "int32",
-          "ref": false,
-          "description": "The handle of the entity."
-        },
-        {
-          "name": "lightGroup",
-          "type": "string",
-          "ref": false,
-          "description": "The light group name."
-        }
-      ],
-      "retType": {
-        "type": "void"
-      }
-    },
-    {
       "name": "SetEntityMaterialGroup",
       "group": "Models",
       "description": "Sets the material group of an entity.",
@@ -23151,6 +23062,338 @@
       }
     },
     {
+      "name": "GetEntDataCArray2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the fixed-size integer array at the given offset.",
+      "funcName": "GetEntDataCArray2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "int64[]",
+        "description": "The array values at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataCArray2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and sets the fixed-size integer array at the given offset.",
+      "funcName": "SetEntDataCArray2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "int64[]",
+          "ref": false,
+          "description": "The array values to set."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntDataCArrayFloat2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the fixed-size float array at the given offset.",
+      "funcName": "GetEntDataCArrayFloat2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "double[]",
+        "description": "The array values at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataCArrayFloat2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and sets the fixed-size float array at the given offset.",
+      "funcName": "SetEntDataCArrayFloat2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "double[]",
+          "ref": false,
+          "description": "The array values to set."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntDataArray2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the integer vector (CUtlVector) at the given offset.",
+      "funcName": "GetEntDataArray2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "int64[]",
+        "description": "The vector elements at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataArray2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and replaces the integer vector (CUtlVector) at the given offset.",
+      "funcName": "SetEntDataArray2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "int64[]",
+          "ref": false,
+          "description": "The vector elements to set."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntDataArrayFloat2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the float vector (CUtlVector) at the given offset.",
+      "funcName": "GetEntDataArrayFloat2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "double[]",
+        "description": "The vector elements at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataArrayFloat2",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and replaces the float vector (CUtlVector) at the given offset.",
+      "funcName": "SetEntDataArrayFloat2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "double[]",
+          "ref": false,
+          "description": "The vector elements to set."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "GetEntDataVector3D2",
       "group": "Schema",
       "description": "Peeks into an entity's object schema and retrieves the vector value at the given offset.",
@@ -23825,6 +24068,338 @@
       }
     },
     {
+      "name": "GetEntDataCArray",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the fixed-size integer array at the given offset.",
+      "funcName": "GetEntDataCArray",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "int64[]",
+        "description": "The array values at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataCArray",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and sets the fixed-size integer array at the given offset.",
+      "funcName": "SetEntDataCArray",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "int64[]",
+          "ref": false,
+          "description": "The array values to set."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntDataCArrayFloat",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the fixed-size float array at the given offset.",
+      "funcName": "GetEntDataCArrayFloat",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "double[]",
+        "description": "The array values at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataCArrayFloat",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and sets the fixed-size float array at the given offset.",
+      "funcName": "SetEntDataCArrayFloat",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "double[]",
+          "ref": false,
+          "description": "The array values to set."
+        },
+        {
+          "name": "arraySize",
+          "type": "int32",
+          "ref": false,
+          "description": "Number of elements in the array."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntDataArray",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the integer vector (CUtlVector) at the given offset.",
+      "funcName": "GetEntDataArray",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "int64[]",
+        "description": "The vector elements at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataArray",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and replaces the integer vector (CUtlVector) at the given offset.",
+      "funcName": "SetEntDataArray",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "int64[]",
+          "ref": false,
+          "description": "The vector elements to set."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (1, 2, 4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntDataArrayFloat",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and retrieves the float vector (CUtlVector) at the given offset.",
+      "funcName": "GetEntDataArrayFloat",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be retrieved."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        }
+      ],
+      "retType": {
+        "type": "double[]",
+        "description": "The vector elements at the given memory location."
+      }
+    },
+    {
+      "name": "SetEntDataArrayFloat",
+      "group": "Schema",
+      "description": "Peeks into an entity's object data and replaces the float vector (CUtlVector) at the given offset.",
+      "funcName": "SetEntDataArrayFloat",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be set."
+        },
+        {
+          "name": "offset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the schema to use."
+        },
+        {
+          "name": "value",
+          "type": "double[]",
+          "ref": false,
+          "description": "The vector elements to set."
+        },
+        {
+          "name": "dataSize",
+          "type": "int32",
+          "ref": false,
+          "description": "Size of each element in bytes (4 or 8)."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        },
+        {
+          "name": "chainOffset",
+          "type": "int32",
+          "ref": false,
+          "description": "The offset of the chain entity in the class (-2 for non-entity classes)."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "GetEntDataVector3D",
       "group": "Schema",
       "description": "Peeks into an entity's object schema and retrieves the vector value at the given offset.",
@@ -24369,6 +24944,148 @@
       "retType": {
         "type": "void",
         "description": "A float value at the given schema offset."
+      }
+    },
+    {
+      "name": "GetEntSchemaArray2",
+      "group": "Schema",
+      "description": "Retrieves all elements of an integer array from an entity's schema.",
+      "funcName": "GetEntSchemaArray2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be retrieved."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        }
+      ],
+      "retType": {
+        "type": "int64[]",
+        "description": "The array elements, or an empty array if the field is not found or is not an integer array."
+      }
+    },
+    {
+      "name": "SetEntSchemaArray2",
+      "group": "Schema",
+      "description": "Sets all elements of an integer array in an entity's schema.",
+      "funcName": "SetEntSchemaArray2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be set."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        },
+        {
+          "name": "value",
+          "type": "int64[]",
+          "ref": false,
+          "description": "The array elements to set."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntSchemaArrayFloat2",
+      "group": "Schema",
+      "description": "Retrieves all elements of a float array from an entity's schema.",
+      "funcName": "GetEntSchemaArrayFloat2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be retrieved."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        }
+      ],
+      "retType": {
+        "type": "double[]",
+        "description": "The array elements, or an empty array if the field is not found or is not a float array."
+      }
+    },
+    {
+      "name": "SetEntSchemaArrayFloat2",
+      "group": "Schema",
+      "description": "Sets all elements of a float array in an entity's schema.",
+      "funcName": "SetEntSchemaArrayFloat2",
+      "paramTypes": [
+        {
+          "name": "entity",
+          "type": "ptr64",
+          "ref": false,
+          "description": "Pointer to the instance of the class where the value is to be set."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        },
+        {
+          "name": "value",
+          "type": "double[]",
+          "ref": false,
+          "description": "The array elements to set."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        }
+      ],
+      "retType": {
+        "type": "void"
       }
     },
     {
@@ -25220,6 +25937,148 @@
       "retType": {
         "type": "void",
         "description": "A float value at the given schema offset."
+      }
+    },
+    {
+      "name": "GetEntSchemaArray",
+      "group": "Schema",
+      "description": "Retrieves all elements of an integer array from an entity's schema.",
+      "funcName": "GetEntSchemaArray",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be retrieved."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        }
+      ],
+      "retType": {
+        "type": "int64[]",
+        "description": "The array elements, or an empty array if the field is not found or is not an integer array."
+      }
+    },
+    {
+      "name": "SetEntSchemaArray",
+      "group": "Schema",
+      "description": "Sets all elements of an integer array in an entity's schema.",
+      "funcName": "SetEntSchemaArray",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be set."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        },
+        {
+          "name": "value",
+          "type": "int64[]",
+          "ref": false,
+          "description": "The array elements to set."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "GetEntSchemaArrayFloat",
+      "group": "Schema",
+      "description": "Retrieves all elements of a float array from an entity's schema.",
+      "funcName": "GetEntSchemaArrayFloat",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be retrieved."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        }
+      ],
+      "retType": {
+        "type": "double[]",
+        "description": "The array elements, or an empty array if the field is not found or is not a float array."
+      }
+    },
+    {
+      "name": "SetEntSchemaArrayFloat",
+      "group": "Schema",
+      "description": "Sets all elements of a float array in an entity's schema.",
+      "funcName": "SetEntSchemaArrayFloat",
+      "paramTypes": [
+        {
+          "name": "entityHandle",
+          "type": "int32",
+          "ref": false,
+          "description": "The handle of the entity from which the value is to be set."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the class."
+        },
+        {
+          "name": "memberName",
+          "type": "string",
+          "ref": false,
+          "description": "The name of the schema member."
+        },
+        {
+          "name": "value",
+          "type": "double[]",
+          "ref": false,
+          "description": "The array elements to set."
+        },
+        {
+          "name": "changeState",
+          "type": "bool",
+          "ref": false,
+          "description": "If true, change will be sent over the network."
+        }
+      ],
+      "retType": {
+        "type": "void"
       }
     },
     {
@@ -27572,6 +28431,78 @@
       }
     },
     {
+      "name": "OnClientSpeakingStart_Register",
+      "group": "Listeners",
+      "description": "Register callback to event.",
+      "funcName": "OnClientSpeakingStart_Register",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSpeakingStartCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSpeakingStart_Unregister",
+      "group": "Listeners",
+      "description": "Unregister callback to event.",
+      "funcName": "OnClientSpeakingStart_Unregister",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSpeakingStartCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSpeakingEnd_Register",
+      "group": "Listeners",
+      "description": "Register callback to event.",
+      "funcName": "OnClientSpeakingEnd_Register",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSpeakingEndCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "OnClientSpeakingEnd_Unregister",
+      "group": "Listeners",
+      "description": "Unregister callback to event.",
+      "funcName": "OnClientSpeakingEnd_Unregister",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "Function callback.",
+          "prototype": "OnClientSpeakingEndCallback"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
       "name": "OnSendNetMessage_Register",
       "group": "Listeners",
       "description": "Register callback to event.",
@@ -27905,6 +28836,334 @@
       "retType": {
         "type": "bool",
         "description": "True if the hook was successfully removed, false otherwise."
+      }
+    },
+    {
+      "name": "HookClientVoiceData",
+      "group": "Voice",
+      "description": "Hooks every voice packet a client sends, before the engine passes it on. The packet can be changed or blocked.",
+      "funcName": "HookClientVoiceData",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "The callback function to invoke.",
+          "prototype": "ClientVoiceDataHookCallback"
+        }
+      ],
+      "retType": {
+        "type": "bool",
+        "description": "True if the hook was successfully added, false otherwise."
+      }
+    },
+    {
+      "name": "UnhookClientVoiceData",
+      "group": "Voice",
+      "description": "Unhooks a previously hooked callback from HookClientVoiceData.",
+      "funcName": "UnhookClientVoiceData",
+      "paramTypes": [
+        {
+          "name": "callback",
+          "type": "function",
+          "ref": false,
+          "description": "The callback function to remove.",
+          "prototype": "ClientVoiceDataHookCallback"
+        }
+      ],
+      "retType": {
+        "type": "bool",
+        "description": "True if the hook was successfully removed, false otherwise."
+      }
+    },
+    {
+      "name": "VoiceDataGetFormat",
+      "group": "Voice",
+      "description": "Gets the codec of a voice packet.",
+      "funcName": "VoiceDataGetFormat",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        }
+      ],
+      "retType": {
+        "type": "int32",
+        "description": "The voice data format.",
+        "enum": "VoiceDataFormat"
+      }
+    },
+    {
+      "name": "VoiceDataSetFormat",
+      "group": "Voice",
+      "description": "Sets the codec of a voice packet.",
+      "funcName": "VoiceDataSetFormat",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        },
+        {
+          "name": "format",
+          "type": "int32",
+          "ref": false,
+          "description": "The voice data format.",
+          "enum": "VoiceDataFormat"
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "VoiceDataGetAudio",
+      "group": "Voice",
+      "description": "Gets the compressed audio of a voice packet.",
+      "funcName": "VoiceDataGetAudio",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        }
+      ],
+      "retType": {
+        "type": "uint8[]",
+        "description": "The compressed audio bytes."
+      }
+    },
+    {
+      "name": "VoiceDataSetAudio",
+      "group": "Voice",
+      "description": "Replaces the compressed audio of a voice packet.",
+      "funcName": "VoiceDataSetAudio",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        },
+        {
+          "name": "audio",
+          "type": "uint8[]",
+          "ref": false,
+          "description": "The compressed audio bytes."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "VoiceDataGetSampleRate",
+      "group": "Voice",
+      "description": "Gets the sample rate of a voice packet.",
+      "funcName": "VoiceDataGetSampleRate",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        }
+      ],
+      "retType": {
+        "type": "uint32",
+        "description": "The sample rate in Hz."
+      }
+    },
+    {
+      "name": "VoiceDataSetSampleRate",
+      "group": "Voice",
+      "description": "Sets the sample rate of a voice packet.",
+      "funcName": "VoiceDataSetSampleRate",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        },
+        {
+          "name": "sampleRate",
+          "type": "uint32",
+          "ref": false,
+          "description": "The sample rate in Hz."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "VoiceDataGetNumPackets",
+      "group": "Voice",
+      "description": "Gets the number of codec packets in a voice packet.",
+      "funcName": "VoiceDataGetNumPackets",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        }
+      ],
+      "retType": {
+        "type": "uint32",
+        "description": "The number of codec packets."
+      }
+    },
+    {
+      "name": "VoiceDataSetNumPackets",
+      "group": "Voice",
+      "description": "Sets the number of codec packets in a voice packet.",
+      "funcName": "VoiceDataSetNumPackets",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        },
+        {
+          "name": "numPackets",
+          "type": "uint32",
+          "ref": false,
+          "description": "The number of codec packets."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "VoiceDataGetPacketOffsets",
+      "group": "Voice",
+      "description": "Gets the offsets of the codec packets inside the audio of a voice packet.",
+      "funcName": "VoiceDataGetPacketOffsets",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        }
+      ],
+      "retType": {
+        "type": "uint32[]",
+        "description": "The packet offsets in bytes."
+      }
+    },
+    {
+      "name": "VoiceDataSetPacketOffsets",
+      "group": "Voice",
+      "description": "Replaces the offsets of the codec packets inside the audio of a voice packet.",
+      "funcName": "VoiceDataSetPacketOffsets",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        },
+        {
+          "name": "offsets",
+          "type": "uint32[]",
+          "ref": false,
+          "description": "The packet offsets in bytes."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "VoiceDataGetVoiceLevel",
+      "group": "Voice",
+      "description": "Gets the voice level the client reported for a voice packet.",
+      "funcName": "VoiceDataGetVoiceLevel",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        }
+      ],
+      "retType": {
+        "type": "float",
+        "description": "The voice level."
+      }
+    },
+    {
+      "name": "VoiceDataSetVoiceLevel",
+      "group": "Voice",
+      "description": "Sets the voice level of a voice packet.",
+      "funcName": "VoiceDataSetVoiceLevel",
+      "paramTypes": [
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet from HookClientVoiceData."
+        },
+        {
+          "name": "voiceLevel",
+          "type": "float",
+          "ref": false,
+          "description": "The voice level."
+        }
+      ],
+      "retType": {
+        "type": "void"
+      }
+    },
+    {
+      "name": "SendVoiceData",
+      "group": "Voice",
+      "description": "Sends Opus voice frames to clients as if a player was talking.",
+      "funcName": "SendVoiceData",
+      "paramTypes": [
+        {
+          "name": "recipients",
+          "type": "int32[]",
+          "ref": false,
+          "description": "The slots of the players who receive the voice."
+        },
+        {
+          "name": "speakerSlot",
+          "type": "int32",
+          "ref": false,
+          "description": "The slot of the player shown as talking, or -1 for none."
+        },
+        {
+          "name": "audio",
+          "type": "uint8[]",
+          "ref": false,
+          "description": "Raw Opus packets encoded at 48 kHz, written back to back without a container (no Ogg) or length prefixes. Frame boundaries are given by packetOffsets."
+        },
+        {
+          "name": "packetOffsets",
+          "type": "uint32[]",
+          "ref": false,
+          "description": "For every Opus packet in audio, the byte offset where it ends, in ascending order; the last offset equals the size of audio. Example: packets of 60, 55 and 62 bytes give [60, 115, 177]."
+        },
+        {
+          "name": "sectionNumber",
+          "type": "uint32",
+          "ref": false,
+          "description": "A number that grows with every call while one stream plays."
+        }
+      ],
+      "retType": {
+        "type": "bool",
+        "description": "True if the voice was sent to at least one client, false otherwise."
       }
     },
     {
@@ -33149,57 +34408,57 @@
           "bindSelf": true
         },
         {
-          "name": "SetHLTV",
+          "name": "SetAlways",
           "method": "SetTransmitInfoAlways",
           "bindSelf": true
         },
         {
-          "name": "ClearHLTV",
+          "name": "ClearAlways",
           "method": "ClearTransmitInfoAlways",
           "bindSelf": true
         },
         {
-          "name": "IsHLTVSet",
+          "name": "IsAlwaysSet",
           "method": "IsTransmitInfoAlwaysSet",
           "bindSelf": true
         },
         {
-          "name": "SetHLTVAll",
+          "name": "SetAlwaysAll",
           "method": "SetTransmitInfoAlwaysAll",
           "bindSelf": true
         },
         {
-          "name": "ClearHLTVAll",
+          "name": "ClearAlwaysAll",
           "method": "ClearTransmitInfoAlwaysAll",
           "bindSelf": true
         },
         {
-          "name": "GetTargetSlotsCount",
+          "name": "GetTargetSpawnGroupsCount",
           "method": "GetTransmitInfoTargetSpawnGroupsCount",
           "bindSelf": true
         },
         {
-          "name": "GetTargetSlot",
+          "name": "GetTargetSpawnGroup",
           "method": "GetTransmitInfoTargetSpawnGroup",
           "bindSelf": true
         },
         {
-          "name": "AddTargetSlot",
+          "name": "AddTargetSpawnGroup",
           "method": "AddTransmitInfoTargetSpawnGroup",
           "bindSelf": true
         },
         {
-          "name": "RemoveTargetSlot",
+          "name": "RemoveTargetSpawnGroup",
           "method": "RemoveTransmitInfoTargetSpawnGroup",
           "bindSelf": true
         },
         {
-          "name": "GetTargetSlotsAll",
+          "name": "GetTargetSpawnGroupsAll",
           "method": "GetTransmitInfoTargetSpawnGroupsAll",
           "bindSelf": true
         },
         {
-          "name": "RemoveTargetSlotsAll",
+          "name": "RemoveTargetSpawnGroupsAll",
           "method": "RemoveTransmitInfoTargetSpawnGroupsAll",
           "bindSelf": true
         },
@@ -34506,6 +35765,38 @@
       }
     },
     {
+      "name": "OnClientSpeakingStartCallback",
+      "funcName": "OnClientSpeakingStartCallback",
+      "description": "Called when a client starts sending voice, also when the client's voice is muted.",
+      "paramTypes": [
+        {
+          "name": "playerSlot",
+          "type": "int32",
+          "description": "The slot of the player who started talking."
+        }
+      ],
+      "retType": {
+        "type": "void",
+        "description": ""
+      }
+    },
+    {
+      "name": "OnClientSpeakingEndCallback",
+      "funcName": "OnClientSpeakingEndCallback",
+      "description": "Called when a client stops sending voice for 0.3 seconds, or right before OnClientDisconnect if the client disconnects while talking.",
+      "paramTypes": [
+        {
+          "name": "playerSlot",
+          "type": "int32",
+          "description": "The slot of the player who stopped talking."
+        }
+      ],
+      "retType": {
+        "type": "void",
+        "description": ""
+      }
+    },
+    {
       "name": "OnSendNetMessageCallback",
       "funcName": "OnSendNetMessageCallback",
       "description": "Called when a net message is sent to a single client (e.g. net_SignonState). Messages that never go through here or PostEventAbstract (e.g. svc_ClearAllStringTables, sent as part of the initial signon bundle) are instead only visible through OnSerializeMessage.",
@@ -34568,6 +35859,29 @@
       }
     },
     {
+      "name": "ClientVoiceDataHookCallback",
+      "funcName": "ClientVoiceDataHookCallback",
+      "description": "Callback function for voice packets sent by clients. Runs after the Speak_Muted check, so packets of muted players don't reach it.",
+      "paramTypes": [
+        {
+          "name": "playerSlot",
+          "type": "int32",
+          "description": "The slot of the player who talks."
+        },
+        {
+          "name": "voiceData",
+          "type": "ptr64",
+          "ref": false,
+          "description": "The voice packet, valid only during the callback."
+        }
+      ],
+      "retType": {
+        "type": "int32",
+        "description": "Handled or Stop blocks the packet for everyone, Stop also skips the remaining callbacks.",
+        "enum": "ResultType"
+      }
+    },
+    {
       "name": "UserMessageCallback",
       "funcName": "UserMessageCallback",
       "description": "Callback function for user messages.",
@@ -34587,6 +35901,27 @@
     }
   ],
   "enums": [
+    {
+      "name": "VoiceDataFormat",
+      "description": "The codec of a voice packet.",
+      "values": [
+        {
+          "name": "Steam",
+          "description": "Steam voice codec.",
+          "value": 0
+        },
+        {
+          "name": "Engine",
+          "description": "Engine voice codec.",
+          "value": 1
+        },
+        {
+          "name": "Opus",
+          "description": "Opus.",
+          "value": 2
+        }
+      ]
+    },
     {
       "name": "KeyValuesType",
       "description": "The data type of a KeyValues key.",

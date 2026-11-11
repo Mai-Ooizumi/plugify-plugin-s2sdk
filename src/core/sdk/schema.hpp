@@ -31,7 +31,11 @@ struct SchemaKey {
 	int32_t offset{-1};
 	bool networked{};
 	size_t size{};
-	CSchemaType* type{};
+	const CSchemaType* type{};
+
+	explicit operator bool() const noexcept {
+		return offset != -1;
+	}
 };
 
 namespace schema {
@@ -77,7 +81,7 @@ namespace schema {
 			"m_nMusicID",
 	};
 
-	enum ElementType : int32_t {
+	enum class FieldKind : uint8_t {
 		Invalid,
 		Single,
 		Array,
@@ -85,25 +89,98 @@ namespace schema {
 		Class
 	};
 
-	struct ElementSizedType {
-		ElementType type;
-		int32_t size;
+	// How a numeric element is laid out in memory: its size and whether it is signed, unsigned or floating-point.
+	// Reading an unsigned storage zero-extends the value, a signed one sign-extends it.
+	enum class Storage : uint8_t {
+		Invalid,
+		I8,
+		U8,
+		I16,
+		U16,
+		I32,
+		U32,
+		I64,
+		U64,
+		F32,
+		F64
+	};
+
+	constexpr int SizeOf(Storage storage) {
+		switch (storage) {
+			case Storage::I8:
+			case Storage::U8:
+				return 1;
+			case Storage::I16:
+			case Storage::U16:
+				return 2;
+			case Storage::I32:
+			case Storage::U32:
+			case Storage::F32:
+				return 4;
+			case Storage::I64:
+			case Storage::U64:
+			case Storage::F64:
+				return 8;
+			default:
+				return -1;
+		}
+	}
+
+	// Signed integer storage of `size` bytes.
+	constexpr Storage IntStorage(int size) {
+		switch (size) {
+			case 1:
+				return Storage::I8;
+			case 2:
+				return Storage::I16;
+			case 4:
+				return Storage::I32;
+			case 8:
+				return Storage::I64;
+			default:
+				return Storage::Invalid;
+		}
+	}
+
+	// Floating-point storage of `size` bytes.
+	constexpr Storage FloatStorage(int size) {
+		switch (size) {
+			case 4:
+				return Storage::F32;
+			case 8:
+				return Storage::F64;
+			default:
+				return Storage::Invalid;
+		}
+	}
+
+	constexpr bool IsInteger(Storage storage) {
+		return storage != Storage::Invalid && storage != Storage::F32 && storage != Storage::F64;
+	}
+
+	constexpr bool IsFloat(Storage storage) {
+		return storage == Storage::F32 || storage == Storage::F64;
+	}
+
+	struct NumericField {
+		FieldKind type;
+		Storage storage;
 	};
 
     int32_t FindChainOffset(std::string_view className);
-    SchemaKey GetOffset(std::string_view className, std::string_view memberName);
+    SchemaKey FindOffset(std::string_view className, std::string_view memberName);
 
 	// for llvm debug mode
     int32_t FindChainOffset(const char* className);
-    SchemaKey GetOffset(const char* className, const char* memberName);
+    SchemaKey FindOffset(const char* className, const char* memberName);
 
     void NetworkStateChanged(intptr_t chainEntity, uint32_t localOffset, int32_t arrayIndex = 0xFFFFFFFF);
 
-	ElementType GetElementType(CSchemaType* type);
-	ElementSizedType IsIntType(CSchemaType* type);
-	ElementSizedType IsFloatType(CSchemaType* type);
-	ElementType IsPlainType(CSchemaType* type, size_t size);
-	ElementType IsAtomicType(CSchemaType* type, size_t size);
+	FieldKind GetFieldKind(const CSchemaType* type);
+	NumericField MatchInteger(const CSchemaType* type);
+	NumericField MatchFloat(const CSchemaType* type);
+	FieldKind MatchPlain(const CSchemaType* type, int size);
+	FieldKind MatchAtomic(const CSchemaType* type, int size);
 
 } // namespace schema
 
@@ -134,7 +211,7 @@ class SchemaField {
 
 	// Compact internal helpers
 	[[nodiscard]] auto Key(this auto&& self) {
-		static const auto key = schema::GetOffset(ThisClass::m_className, MemberName);
+		static const auto key = schema::FindOffset(ThisClass::m_className, MemberName);
 		static const bool done = []{
 			if constexpr (!requires { T::m_className; }) {
 				if (std::string_view(MemberName) != schema::chainKey && key.size != sizeof(T))
@@ -286,7 +363,7 @@ class SchemaPointerField {
 
     // Compact internal helpers
     [[nodiscard]] auto Key(this auto&& self) {
-        static const auto key = schema::GetOffset(ThisClass::m_className, MemberName);
+        static const auto key = schema::FindOffset(ThisClass::m_className, MemberName);
         return key;
     }
     [[nodiscard]] auto Chain(this auto&& self) {

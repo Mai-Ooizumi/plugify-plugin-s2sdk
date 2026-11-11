@@ -15,7 +15,14 @@ endif()
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" VERSION_FILE_CONTENTS)
 string(STRIP "${VERSION_FILE_CONTENTS}" VERSION_FILE_CONTENTS)
-set(S2SDK_VERSION "${VERSION_FILE_CONTENTS}" CACHE STRING "Set version name")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
+# -DS2SDK_VERSION overrides version.txt for one configure only; keeping it cached would pin an old version
+if(DEFINED CACHE{S2SDK_VERSION})
+    set(S2SDK_VERSION "$CACHE{S2SDK_VERSION}")
+    unset(S2SDK_VERSION CACHE)
+else()
+    set(S2SDK_VERSION "${VERSION_FILE_CONTENTS}")
+endif()
 set(S2SDK_PACKAGE "s2sdk" CACHE STRING "Set package name")
 string(REPLACE "v" "" S2SDK_VERSION "${S2SDK_VERSION}")
 string(REGEX REPLACE "[.+-]" ";" S2SDK_VERSION_LIST ${S2SDK_VERSION})
@@ -295,19 +302,19 @@ configure_file(
 
 configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/gamedata.jsonc
-        ${CMAKE_CURRENT_BINARY_DIR}/gamedata.jsonc
+        ${CMAKE_CURRENT_BINARY_DIR}/s2sdk.gamedata.jsonc
         COPYONLY
 )
 
 configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/settings.jsonc
-        ${CMAKE_CURRENT_BINARY_DIR}/settings.jsonc
+        ${CMAKE_CURRENT_BINARY_DIR}/s2sdk.settings.jsonc
         COPYONLY
 )
 
 configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/translations.jsonc
-        ${CMAKE_CURRENT_BINARY_DIR}/translations.jsonc
+        ${CMAKE_CURRENT_BINARY_DIR}/s2sdk.translations.jsonc
         COPYONLY
 )
 
