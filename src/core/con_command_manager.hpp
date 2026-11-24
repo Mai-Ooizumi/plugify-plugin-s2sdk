@@ -35,6 +35,8 @@ public:
 		return instance;
 	}
 
+	void Shutdown();
+
 	bool AddCommandListener(std::string_view name, ConCommandListenerCallback callback, HookMode mode);
 	bool RemoveCommandListener(std::string_view name, ConCommandListenerCallback callback, HookMode mode);
 	bool IsValidValveCommand(std::string_view name);

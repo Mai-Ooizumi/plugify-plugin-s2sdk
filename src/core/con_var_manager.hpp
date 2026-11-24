@@ -56,13 +56,14 @@ consteval void enable_bitmask_operators(ConVarFlag);
 struct ConVarInfo {
 	std::unique_ptr<ConVarRef> conVar;
 	ListenerManager<ConVarListenerStr, ConVarListenerCallback> callbacks;
+	bool owned{false};
 };
 
 using ConVarHandle = uint64_t;
 
 class ConVarManager {
 	ConVarManager() = default;
-	~ConVarManager();
+	~ConVarManager() = default;
 	NONCOPYABLE(ConVarManager)
 
 	static ConVarManager instance;
@@ -72,6 +73,7 @@ public:
 	}
 	static void Init();
 	static void Terminate();
+	void Shutdown();
 
 	static uint64 GetFlags(ConVarFlag flags) {
 		auto f = static_cast<uint64>(flags);
@@ -107,6 +109,7 @@ public:
 			conVarInfo->conVar = std::move(conVar);
 		} else {
 			conVarInfo->conVar = std::unique_ptr<ConVarRef>(new CConVar<T>(name.data(), GetFlags(flags), description.data(), defaultVal, hasMin, min, hasMax, max));
+			conVarInfo->owned = true;
 		}
 
 		return *conVarInfo->conVar;
