@@ -272,10 +272,12 @@ void MultiAddonManager::ReloadMap() {
 	std::string cmd;
 
 	// Using the concommand here as g_pEngineServer->ChangeLevel somehow doesn't unmount workshop maps and we wanna be clean
-	if (m_currentWorkshopMap == k_PublishedFileIdInvalid || g_pFullFileSystem->IsDirectory(std::to_string(m_currentWorkshopMap).c_str(), "OFFICIAL_ADDONS"))
+	if (m_currentWorkshopMap == k_PublishedFileIdInvalid || g_pFullFileSystem->IsDirectory(std::to_string(m_currentWorkshopMap).c_str(), "OFFICIAL_ADDONS")) {
+		if (!gpGlobals || !gpGlobals->mapname.ToCStr()[0]) return;
 		cmd = std::format("changelevel {}", gpGlobals->mapname.ToCStr());
-	else
+	} else {
 		cmd = std::format("host_workshop_map {}", m_currentWorkshopMap);
+	}
 
 	g_pEngineServer->ServerCommand(cmd.c_str());
 }
@@ -309,7 +311,11 @@ void MultiAddonManager::OnAddonDownloaded(DownloadItemResult_t* result) {
 
 	// That was the last important download, now reload the map
 	if (found != 0 && m_importantDownloads.empty()) {
-		plg::print(LS_MESSAGE, "All addon downloads finished, reloading map {}\n", gpGlobals->mapname.ToCStr());
+		if (gpGlobals && gpGlobals->mapname.ToCStr()[0]) {
+			plg::print(LS_MESSAGE, "All addon downloads finished, reloading map {}\n", gpGlobals->mapname.ToCStr());
+		} else {
+			plg::print(LS_MESSAGE, "All addon downloads finished\n");
+		}
 		ReloadMap();
 	}
 }
