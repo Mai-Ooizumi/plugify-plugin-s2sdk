@@ -3,28 +3,6 @@
 #include <core/sdk/utils.hpp>
 #include <core/sdk/cvars.hpp>
 
-ConVarManager ConVarManager::instance;
-
-ConVarManager::~ConVarManager() {
-	if (!g_pCVar) {
-		return;
-	}
-
-	for (const auto& [_, cv] : m_cnvLookup) {
-		if (cv->conVar->IsValidRef()) {
-			g_pCVar->UnregisterConVarCallbacks(*cv->conVar);
-		}
-	}
-}
-
-void ConVarManager::Init() {
-	ConVar_Register(FCVAR_RELEASE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
-}
-
-void ConVarManager::Terminate() {
-	ConVar_Unregister();
-}
-
 bool ConVarManager::RemoveConVar(std::string_view name) {
 	std::scoped_lock lock(m_mutex);
 
@@ -34,33 +12,6 @@ bool ConVarManager::RemoveConVar(std::string_view name) {
 	}
 
 	return m_cnvLookup.erase(name) != 0;
-}
-
-ConVarRef ConVarManager::FindConVar(std::string_view name) {
-	std::scoped_lock lock(m_mutex);
-
-	if (name.empty()) {
-		plg::print(LS_WARNING, "ConVar name empty\n");
-		return {};
-	}
-
-	auto it = m_cnvLookup.find(name);
-	if (it != m_cnvLookup.end()) {
-		auto conVarInfo = it->second;
-		return *conVarInfo->conVar;
-	} else {
-		auto conVarInfo = std::make_shared<ConVarInfo>();
-		m_cnvLookup.emplace(name, conVarInfo);
-
-		conVarInfo->conVar = std::make_unique<ConVarRefAbstract>(name.data(), true);
-
-		if (!conVarInfo->conVar->IsValidRef()) {
-			plg::print(LS_WARNING, "Failed to find '{}' convar\n", name);
-			return {};
-		}
-
-		return *conVarInfo->conVar;
-	}
 }
 
 bool ConVarManager::HookConVarChange(std::string_view name, ConVarListenerCallback callback) {
@@ -476,6 +427,7 @@ void ConVarManager::UpdateConVarValue(
 }
 
 plg::vector<plg::string> ConVarManager::GetAllConVars() {
+	std::scoped_lock lock(m_mutex);
 	plg::vector<plg::string> commands;
 	commands.reserve(m_cnvLookup.size());
 	for (const auto& [convar, _] : m_cnvLookup) {

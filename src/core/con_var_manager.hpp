@@ -54,7 +54,8 @@ enum class ConVarFlag : uint64_t {
 consteval void enable_bitmask_operators(ConVarFlag);
 
 struct ConVarInfo {
-	std::unique_ptr<ConVarRef> conVar;
+	std::shared_ptr<ConVarRef> conVar;
+	EConVarType type;
 	ListenerManager<ConVarListenerStr, ConVarListenerCallback> callbacks;
 };
 
@@ -62,7 +63,7 @@ using ConVarHandle = uint64_t;
 
 class ConVarManager {
 	ConVarManager() = default;
-	~ConVarManager();
+	~ConVarManager() = default;
 	NONCOPYABLE(ConVarManager)
 
 	static ConVarManager instance;
@@ -70,8 +71,19 @@ public:
 	static auto& Instance() noexcept {
 		return instance;
 	}
-	static void Init();
-	static void Terminate();
+	static void Init() {
+		std::scoped_lock lock(instance.m_mutex);
+		if (!instance.m_registered) {
+			instance.m_registered = ConVar_Register(FCVAR_RELEASE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
+		}
+	}
+
+	static void Terminate() {
+		std::scoped_lock lock(instance.m_mutex);
+		instance.m_cnvLookup.clear();
+		ConVar_Unregister();
+		instance.m_registered = false;
+	}
 
 	static uint64 GetFlags(ConVarFlag flags) {
 		auto f = static_cast<uint64>(flags);
@@ -90,57 +102,43 @@ public:
 			return {};
 		}
 
-		auto it = m_cnvLookup.find(name);
-		if (it != m_cnvLookup.end()) {
-			plg::print(LS_WARNING, "ConVar '{}' is already exists\n", name);
-			auto conVarInfo = it->second;
-			return *conVarInfo->conVar;
+		if (auto it = m_cnvLookup.find(name); it != m_cnvLookup.end()) {
+			plg::print(LS_WARNING, "ConVar '{}' already exists\n", name);
+			return *it->second->conVar;
 		}
 
-		auto conVarInfo = std::make_shared<ConVarInfo>();
-		m_cnvLookup.emplace(name, conVarInfo);
-
-		auto conVar = std::make_unique<ConVarRef>(name.data());
-
-		if (conVar->IsValidRef()) {
-			plg::print(LS_WARNING, "ConVar '{}' is already exists\n", name);
-			conVarInfo->conVar = std::move(conVar);
-		} else {
-			conVarInfo->conVar = std::unique_ptr<ConVarRef>(new CConVar<T>(name.data(), GetFlags(flags), description.data(), defaultVal, hasMin, min, hasMax, max));
+		plg::string key(name);
+		ConVarRefAbstract existing(key.c_str(), true);
+		if (existing.IsValidRef()) {
+			plg::print(LS_WARNING, "ConVar '{}' already exists\n", name);
+			return CacheConVar(std::move(key), std::make_shared<ConVarRef>(existing), existing.GetType());
 		}
 
-		return *conVarInfo->conVar;
+		// SourceSDK queues registration before Init; these arguments and the
+		// new ConVar would not outlive that queue.
+		if (!m_registered) {
+			plg::print(LS_WARNING, "Cannot create ConVar '{}' before registration\n", name);
+			return {};
+		}
+
+		plg::string desc(description);
+		auto conVar = std::make_shared<CConVar<T>>(key.c_str(), GetFlags(flags), desc.c_str(), defaultVal, hasMin, min, hasMax, max);
+		if (!conVar->IsValidRef()) {
+			plg::print(LS_WARNING, "Failed to create '{}' convar\n", name);
+			return {};
+		}
+		return CacheConVar(std::move(key), std::move(conVar), TranslateConVarType<T>());
 	}
 
 	template<typename T>
 	ConVarRef FindConVar(std::string_view name) {
-		std::scoped_lock lock(m_mutex);
-
-		if (name.empty()) {
-			plg::print(LS_WARNING, "ConVar name empty\n");
-			return {};
-		}
-
-		auto it = m_cnvLookup.find(name);
-		if (it != m_cnvLookup.end()) {
-			auto conVarInfo = it->second;
-			return *conVarInfo->conVar;
-		}
-
-		auto conVarInfo = std::make_shared<ConVarInfo>();
-		m_cnvLookup.emplace(name, conVarInfo);
-
-		conVarInfo->conVar = std::make_unique<CConVarRef<T>>(name.data());
-
-		if (!conVarInfo->conVar->IsValidRef()) {
-			plg::print(LS_WARNING, "Failed to find '{}' convar\n", name);
-			return {};
-		}
-
-		return *conVarInfo->conVar;
+		return FindConVar(name, TranslateConVarType<T>());
 	}
 
-	ConVarRef FindConVar(std::string_view name);
+	ConVarRef FindConVar(std::string_view name) {
+		return FindConVar(name, EConVarType_Invalid);
+	}
+
 	bool RemoveConVar(std::string_view name);
 
 	bool HookConVarChange(std::string_view name, ConVarListenerCallback callback);
@@ -162,12 +160,46 @@ public:
 	plg::vector<plg::string> GetAllConVars();
 
 private:
+	ConVarRef FindConVar(std::string_view name, EConVarType type) {
+		std::scoped_lock lock(m_mutex);
+
+		if (name.empty()) {
+			plg::print(LS_WARNING, "ConVar name empty\n");
+			return {};
+		}
+
+		if (auto it = m_cnvLookup.find(name); it != m_cnvLookup.end()) {
+			if (type == EConVarType_Invalid || it->second->type == type) {
+				return *it->second->conVar;
+			}
+		} else {
+			// A typed CConVarRef constructed from a name registers an engine
+			// reference. Lookup must not create one or change the engine type.
+			plg::string key(name);
+			ConVarRefAbstract conVar(key.c_str(), type == EConVarType_Invalid);
+			if (conVar.IsValidRef() && (type == EConVarType_Invalid || conVar.GetType() == type)) {
+				return CacheConVar(std::move(key), std::make_shared<ConVarRef>(conVar), conVar.GetType());
+			}
+		}
+		plg::print(LS_WARNING, "Failed to find '{}' convar\n", name);
+		return {};
+	}
+
+	ConVarRef CacheConVar(plg::string key, std::shared_ptr<ConVarRef> conVar, EConVarType type) {
+		auto info = std::make_shared<ConVarInfo>();
+		info->conVar = std::move(conVar);
+		info->type = type;
+		return *m_cnvLookup.emplace(std::move(key), std::move(info)).first->second->conVar;
+	}
+
 	static void UpdateConVarValue(ConVarRefAbstract conVar, std::string_view value);
 
 private:
 	plg::flat_hash_map<plg::string, std::shared_ptr<ConVarInfo>, plg::case_insensitive_hash, plg::case_insensitive_equal> m_cnvLookup;
 	std::recursive_mutex m_mutex;
 	ListenerManager<ConVarListenerStr, ConVarListenerCallback> m_globalCallbacks;
+	bool m_registered{false};
 };
+inline ConVarManager ConVarManager::instance;
 inline ConVarManager& g_ConVarManager = ConVarManager::Instance();
 

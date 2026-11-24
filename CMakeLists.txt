@@ -254,6 +254,33 @@ if(NOT COMPILER_SUPPORTS_FORMAT)
     #target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
 endif()
 
+if(SOURCESDK_ENABLE_TESTS)
+    enable_testing()
+    set(S2SDK_TEST_SUPPORT external/sourcesdk/tests)
+    add_executable(convar_manager_tests
+        tests/convar_manager.cpp
+        "${S2SDK_TEST_SUPPORT}/containers_main.cpp"
+        "${S2SDK_TEST_SUPPORT}/common/runner.cpp"
+        "${S2SDK_TEST_SUPPORT}/common/source2_main.cpp"
+    )
+    target_link_libraries(convar_manager_tests PRIVATE sourcesdk)
+    target_compile_definitions(convar_manager_tests PRIVATE ${S2SDK_COMPILE_DEFINITIONS})
+    target_compile_options(convar_manager_tests PRIVATE ${S2SDK_COMPILE_OPTIONS})
+    target_include_directories(convar_manager_tests PRIVATE src external/plugify/include "${CMAKE_BINARY_DIR}/exports" "${S2SDK_TEST_SUPPORT}")
+    if(WINDOWS)
+        target_compile_options(convar_manager_tests PRIVATE /Zc:preprocessor)
+        set_target_properties(convar_manager_tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        add_custom_command(TARGET convar_manager_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/external/sourcesdk/lib/win64/tier0.dll"
+                "$<TARGET_FILE_DIR:convar_manager_tests>"
+            VERBATIM)
+    elseif(LINUX)
+        target_compile_definitions(convar_manager_tests PRIVATE _GLIBCXX_USE_CXX11_ABI=0)
+    endif()
+    add_test(NAME convar_manager_tests COMMAND convar_manager_tests)
+endif()
+
 configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/plugify-plugin-s2sdk.pplugin.in
         ${CMAKE_CURRENT_BINARY_DIR}/plugify-plugin-s2sdk.pplugin
