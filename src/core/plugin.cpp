@@ -448,6 +448,8 @@ void OnSteamAPIActivated(bool reloadMap = true) {
 	g_pSteamUGC = SteamGameServerUGC();
 
 	if (!g_pSteam || !g_pSteamUGC) {
+		g_pSteam = nullptr;
+		g_pSteamUGC = nullptr;
 		plg::print(LS_WARNING, "StramAPI could not be initialized!\n");
 		return;
 	}
@@ -475,6 +477,8 @@ polyhook::ResultType Hook_GameServerSteamAPIDeactivated(polyhook::HookHandle hoo
 	plg::print(LS_DETAILED, "[GameServerSteamAPIDeactivated]\n");
 
 	g_PlayerManager.OnSteamAPIDeactivated();
+	g_pSteam = nullptr;
+	g_pSteamUGC = nullptr;
 
 	//g_GameServerSteamAPIDeactivatedListenerManager();
 	return polyhook::ResultType::Ignored;
@@ -1348,6 +1352,8 @@ plg::PluginResult Source2SDK::OnPluginEnd() {
 #endif
 	UnregisterEventListeners();
 	g_pGameEventManager->RemoveListener(&g_EventManager);
+	g_pSteam = nullptr;
+	g_pSteamUGC = nullptr;
 	globals::Terminate();
 
 	plg::print(LS_DETAILED, "[OnPluginEnd] = Source2SDK!\n");
