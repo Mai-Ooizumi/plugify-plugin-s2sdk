@@ -156,7 +156,7 @@ public:
 	SCHEMA_FIELD(CHandle<CBaseEntity>, m_hEffectEntity)
 	SCHEMA_FIELD(uint32, m_spawnflags)
 	SCHEMA_FIELD(uint32, m_fFlags)
-	SCHEMA_FIELD(LifeState_t, m_lifeState)
+	SCHEMA_FIELD(uint8, m_lifeState)
 	SCHEMA_FIELD(float, m_flDamageAccumulator)
 	SCHEMA_FIELD(bool, m_bTakesDamage)
 	SCHEMA_FIELD(TakeDamageFlags_t, m_nTakeDamageFlags)
