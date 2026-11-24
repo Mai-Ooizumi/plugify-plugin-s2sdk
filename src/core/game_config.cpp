@@ -1417,6 +1417,15 @@ Result<Memory> VTableResolver::ResolveTable(const Module& module, std::string_vi
 
 GameConfigManager GameConfigManager::instance;
 
+void GameConfigManager::Shutdown() {
+	decltype(m_configs) configs;
+	{
+		std::unique_lock lock(m_mutex);
+		m_configs.swap(configs);
+	}
+	configs.clear();
+}
+
 Result<ConfigId> GameConfigManager::LoadConfig(LoadOptions options) {
 	std::unique_lock lock(m_mutex);
 

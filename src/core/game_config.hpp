@@ -519,14 +519,14 @@ public:
 	PatchManager& GetPatchManager();
 
 	const plg::flat_hash_map<ConfigId, GameConfigEntry>& GetConfigs() const;
+	void Shutdown();
 
 private:
+	ModuleProvider m_moduleProvider;
+	PatchManager m_patchManager;
 	plg::flat_hash_map<ConfigId, GameConfigEntry> m_configs;
 	mutable std::shared_mutex m_mutex;
 	ConfigId m_nextId{};
-
-	ModuleProvider m_moduleProvider;
-	PatchManager m_patchManager;
 
 	friend class GameConfig;
 };

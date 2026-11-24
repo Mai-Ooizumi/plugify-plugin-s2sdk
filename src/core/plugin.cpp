@@ -1342,6 +1342,8 @@ plg::PluginResult Source2SDK::OnPluginEnd() {
 	inventory::Shutdown();
 #endif
 	g_HookManager.UnhookAll();
+	g_ConCommandManager.Shutdown();
+	g_ConVarManager.Shutdown();
 	g_PlayerManager.OnSteamAPIDeactivated();
 #if defined (CS2)
 	g_MultiAddonManager.OnPluginEnd();
@@ -1349,6 +1351,7 @@ plg::PluginResult Source2SDK::OnPluginEnd() {
 	UnregisterEventListeners();
 	g_pGameEventManager->RemoveListener(&g_EventManager);
 	globals::Terminate();
+	g_GameConfigManager.Shutdown();
 
 	plg::print(LS_DETAILED, "[OnPluginEnd] = Source2SDK!\n");
 

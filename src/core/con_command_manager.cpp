@@ -26,6 +26,14 @@ ConCommandInfo::~ConCommandInfo() {
 
 ConCommandManager ConCommandManager::instance;
 
+void ConCommandManager::Shutdown() {
+	std::scoped_lock lock(m_mutex);
+	m_cmdLookup.clear();
+	for (auto& callbacks : m_globalCallbacks) {
+		callbacks.Clear();
+	}
+}
+
 bool ConCommandManager::AddCommandListener(std::string_view name, ConCommandListenerCallback callback, HookMode mode) {
 	std::scoped_lock lock(m_mutex);
 
