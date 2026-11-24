@@ -119,20 +119,12 @@ bool ConCommandManager::RemoveValveCommand(std::string_view name) {
 		return false;
 	}
 
-	auto commandRef = g_pCVar->FindConCommand(name.data());
-	if (!commandRef.IsValidRef()) {
+	auto it = m_cmdLookup.find(name);
+	if (it == m_cmdLookup.end() || it->second->defaultCommand) {
 		return false;
 	}
 
-	if (m_cmdLookup.erase(name) != 0) {
-		return true;
-	}
-
-	if (!commandRef.GetRawData()->HasCallback()) {
-		return false;
-	}
-
-	g_pCVar->UnregisterConCommandCallbacks(commandRef);
+	m_cmdLookup.erase(it);
 	return true;
 }
 
