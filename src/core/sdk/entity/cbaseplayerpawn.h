@@ -38,10 +38,17 @@ public:
 	SCHEMA_FIELD(CHandle<CBasePlayerController>, m_hController)
 
 	void CommitSuicide(bool bExplode, bool bForce) {
-		m_bTakesDamage = true;
 		static auto offset = GetOrLog(g_pGameConfig->GetOffset("CBasePlayerPawn::CommitSuicide"));
+		if (offset == -1) {
+			return;
+		}
+
+		const bool takesDamage = m_bTakesDamage;
+		m_bTakesDamage = true;
 		CallVirtual<void>(offset, this, bExplode, bForce);
-		m_bTakesDamage = false;
+		if (m_lifeState == LIFE_ALIVE) {
+			m_bTakesDamage = takesDamage;
+		}
 	}
 
 	CBasePlayerController* GetController() {
