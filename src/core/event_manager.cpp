@@ -2,9 +2,17 @@
 
 EventManager EventManager::instance;
 
-EventManager::~EventManager() {
-	if (!m_hookMap.empty()) {
+void EventManager::Shutdown() {
+	std::scoped_lock lock(m_mutex);
+	if (g_pGameEventManager) {
 		g_pGameEventManager->RemoveListener(this);
+	}
+	m_hookMap.clear();
+	while (!m_eventStack.empty()) {
+		if (auto copy = m_eventStack.top().copy; g_pGameEventManager && copy) {
+			g_pGameEventManager->FreeEvent(copy);
+		}
+		m_eventStack.pop();
 	}
 }
 
@@ -28,11 +36,8 @@ EventHookError EventManager::HookEvent(std::string_view name, EventListenerCallb
 		auto it = m_hookMap.find(name);
 		if (it != m_hookMap.end()) {
 			hook = it->second;
-			if (mode == HookMode::Post) {
-				hook->postCopy = true;
-			}
 		} else {
-			hook = std::make_shared<EventHook>(name, mode == HookMode::Post);
+			hook = std::make_shared<EventHook>(name);
 			m_hookMap.emplace(name, hook);
 		}
 	}
@@ -50,11 +55,13 @@ EventHookError EventManager::UnhookEvent(std::string_view name, EventListenerCal
 	auto it = m_hookMap.find(name);
 	if (it != m_hookMap.end()) {
 		auto hook = it->second;
-		auto status = hook->callbacks[mode].Unregister(callback) ? EventHookError::Okay : EventHookError::InvalidCallback;
-		if (hook->callbacks[HookMode::Pre].Empty() && hook->callbacks[HookMode::Post].Empty() && --hook->refCount == 0) {
+		if (!hook->callbacks[mode].Unregister(callback)) {
+			return EventHookError::InvalidCallback;
+		}
+		if (hook->callbacks[HookMode::Pre].Empty() && hook->callbacks[HookMode::Post].Empty()) {
 			m_hookMap.erase(it);
 		}
-		return status;
+		return EventHookError::Okay;
 	}
 
 	return EventHookError::NotActive;
@@ -89,37 +96,38 @@ ResultType EventManager::OnFireEvent(IGameEvent* event, const bool dontBroadcast
 	if (!event)
 		return ResultType::Continue;
 
-	bool localDontBroadcast = dontBroadcast;
-
-	std::scoped_lock lock(m_mutex);
+	std::unique_lock lock(m_mutex);
 	auto it = m_hookMap.find(event->GetName());
-	if (it != m_hookMap.end()) {
-		auto hook = it->second;
-		++hook->refCount;
-		m_eventStack.push(hook);
+	if (it == m_hookMap.end()) {
+		m_eventStack.push({});
+		return ResultType::Continue;
+	}
 
-		auto& preHook = hook->callbacks[HookMode::Pre];
-		if (!preHook.Empty()) {
-			plg::print(LS_DETAILED, "Pushing event `{}` pointer: {}, dont broadcast: {}, post: {}\n", event->GetName(), static_cast<const void*>(event), dontBroadcast, false);
+	auto hook = it->second;
+	m_eventStack.push({hook});
+	auto& preHook = hook->callbacks[HookMode::Pre];
+	auto preFuncs = !preHook.Empty() ? preHook.Get() : nullptr;
+	lock.unlock();
 
-			if (auto funcs = preHook.Get()) {
-				plg::string name(event->GetName());
-				for (const auto& func : funcs->handlers) {
-					auto result = func(name, event, dontBroadcast);
-					localDontBroadcast = event->GetBool("dont_broadcast");
+	bool localDontBroadcast = dontBroadcast;
+	if (preFuncs) {
+		plg::print(LS_DETAILED, "Pushing event `{}` pointer: {}, dont broadcast: {}, post: {}\n", event->GetName(), static_cast<const void*>(event), dontBroadcast, false);
+		plg::string name(event->GetName());
+		for (const auto& func : preFuncs->handlers) {
+			auto result = func(name, event, dontBroadcast);
+			localDontBroadcast = event->GetBool("dont_broadcast");
 
-					if (result >= ResultType::Handled) {
-						m_eventCopies.push(nullptr);
-						g_pGameEventManager->FreeEvent(event);
-						return ResultType::Handled;
-					}
-				}
+			if (result >= ResultType::Handled) {
+				// PolyHook still calls Post for a superceded event.
+				g_pGameEventManager->FreeEvent(event);
+				return ResultType::Handled;
 			}
 		}
+	}
 
-		m_eventCopies.push(hook->postCopy ? g_pGameEventManager->DuplicateEvent(event) : nullptr);
-	} else {
-		m_eventStack.push(nullptr);
+	lock.lock();
+	if (!m_eventStack.empty() && m_eventStack.top().hook == hook && !hook->callbacks[HookMode::Post].Empty()) {
+		m_eventStack.top().copy = g_pGameEventManager->DuplicateEvent(event);
 	}
 
 	if (localDontBroadcast != dontBroadcast) {
@@ -130,30 +138,23 @@ ResultType EventManager::OnFireEvent(IGameEvent* event, const bool dontBroadcast
 }
 
 ResultType EventManager::OnFireEvent_Post(IGameEvent* event, bool dontBroadcast) {
+	std::unique_lock lock(m_mutex);
 	if (!event || m_eventStack.empty())
 		return ResultType::Continue;
 
-	if (auto hook = m_eventStack.top()) {
-		auto eventCopy = m_eventCopies.top();
-		m_eventCopies.pop();
-
-		if (eventCopy) {
-			auto& postHook = hook->callbacks[HookMode::Post];
-			if (!postHook.Empty()) {
-				plg::print(LS_DETAILED, "Pushing event `{}` pointer: {}, dont broadcast: {}, post: {}\n", eventCopy->GetName(), static_cast<const void*>(eventCopy), dontBroadcast, true);
-
-				postHook(hook->name, eventCopy, dontBroadcast);
-			}
-
-			g_pGameEventManager->FreeEvent(eventCopy);
-		}
-
-		if (--hook->refCount == 0) {
-			m_hookMap.erase(hook->name);
-		}
-	}
-
+	auto [hook, eventCopy] = std::move(m_eventStack.top());
 	m_eventStack.pop();
+	lock.unlock();
+
+	if (eventCopy) {
+		auto& postHook = hook->callbacks[HookMode::Post];
+		if (!postHook.Empty()) {
+			plg::print(LS_DETAILED, "Pushing event `{}` pointer: {}, dont broadcast: {}, post: {}\n", eventCopy->GetName(), static_cast<const void*>(eventCopy), dontBroadcast, true);
+			postHook(hook->name, eventCopy, dontBroadcast);
+		}
+
+		g_pGameEventManager->FreeEvent(eventCopy);
+	}
 
 	return ResultType::Continue;
 }

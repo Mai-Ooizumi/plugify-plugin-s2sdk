@@ -1346,12 +1346,12 @@ plg::PluginResult Source2SDK::OnPluginEnd() {
 	inventory::Shutdown();
 #endif
 	g_HookManager.UnhookAll();
+	g_EventManager.Shutdown();
 	g_PlayerManager.OnSteamAPIDeactivated();
 #if defined (CS2)
 	g_MultiAddonManager.OnPluginEnd();
 #endif
 	UnregisterEventListeners();
-	g_pGameEventManager->RemoveListener(&g_EventManager);
 	g_pSteam = nullptr;
 	g_pSteamUGC = nullptr;
 	globals::Terminate();
