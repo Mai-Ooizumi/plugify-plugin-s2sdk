@@ -529,9 +529,16 @@ extern "C" PLUGIN_API void Kv1SetEscapeSequences(KeyValues* kv, bool enabled) {
  */
 extern "C" PLUGIN_API void Kv1CopySubkeys(KeyValues* kv, KeyValues* target) {
 	if (!kv || !target || kv == target) return;
-	// CopySubkeys overwrites the subkey pointer, so the old keys would leak
+	// Clearing the target can delete the source when it is a descendant.
+	KeyValues snapshot("Kv1CopySubkeys", target->GetKeyValuesSystem());
+	kv->CopySubkeys(&snapshot);
 	target->Clear();
-	kv->CopySubkeys(target);
+	KeyValues* lastChild = nullptr;
+	while (auto* child = snapshot.GetFirstSubKey()) {
+		snapshot.RemoveSubKey(child, false);
+		target->AddSubkeyUsingKnownLastChild(child, lastChild);
+		lastChild = child;
+	}
 }
 
 /**
